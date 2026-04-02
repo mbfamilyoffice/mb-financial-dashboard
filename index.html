@@ -894,14 +894,19 @@ function loadDeepDive(assetId){
   const cl=document.getElementById('catalystList');cl.innerHTML='';
   sig.catalysts.forEach(c=>{
     const hasDetail=!!CATALYST_DETAIL[c.name];
-    cl.innerHTML+=`
-      <div class="catalyst-item" onclick="${hasDetail?`openCatModal('${c.name.replace(/'/g,"\\'")}','${c.date}','${c.impact}')`:''}" style="${hasDetail?'':'cursor:default'}">
-        <div class="catalyst-date">${c.date}</div>
-        <div class="catalyst-name" style="flex:1">${c.name}</div>
-        <span class="catalyst-impact impact-${c.impact}">${c.impact.toUpperCase()}</span>
-        ${hasDetail?'<span class="catalyst-arrow">›</span>':''}
-      </div>
+    const div=document.createElement('div');
+    div.className='catalyst-item';
+    if(!hasDetail)div.style.cursor='default';
+    div.innerHTML=`
+      <div class="catalyst-date">${c.date}</div>
+      <div class="catalyst-name" style="flex:1">${c.name}</div>
+      <span class="catalyst-impact impact-${c.impact}">${c.impact.toUpperCase()}</span>
+      ${hasDetail?'<span class="catalyst-arrow">›</span>':''}
     `;
+    if(hasDetail){
+      div.addEventListener('click',()=>openCatModal(c.name,c.date,c.impact));
+    }
+    cl.appendChild(div);
   });
 }
 
