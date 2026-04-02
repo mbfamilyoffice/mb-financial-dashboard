@@ -1271,22 +1271,25 @@ document.addEventListener('click',e=>{
 ════════════════════════════ */
 const POLYGON_KEY = 'GQ1er4FvprBeuOuizTLs2YIbkVoLGksp';
 
-// Polygon ticker mapping (ETFs/futures als proxy voor indices & grondstoffen)
+// Polygon Enterprise — directe tickers (geen ETF proxies)
 const POLYGON_MAP = {
-  XAU:  'GLD',   // Gold ETF
-  XAG:  'SLV',   // Silver ETF
-  XPT:  'PPLT',  // Platinum ETF
-  WTI:  'USO',   // Oil ETF
-  HG:   'CPER',  // Copper ETF
-  SPX:  'SPY',   // S&P 500 ETF
-  NDX:  'QQQ',   // Nasdaq ETF
-  DJI:  'DIA',   // Dow Jones ETF
-  RUT:  'IWM',   // Russell 2000 ETF
-  AEX:  'EWN',   // Netherlands ETF
-  DAX:  'EWG',   // Germany ETF
-  CAC:  'EWQ',   // France ETF
-  FTSE: 'EWU',   // UK ETF
-  SX5E: 'FEZ',   // Euro Stoxx 50 ETF
+  // US Indices — directe index feed
+  SPX:  'I:SPX',
+  NDX:  'I:NDX',
+  DJI:  'I:DJI',
+  RUT:  'I:RUT',
+  // EU Indices — beste beschikbare via Polygon
+  AEX:  'I:AEX',
+  DAX:  'I:DAX',
+  CAC:  'I:CAC40',
+  FTSE: 'I:UKX',
+  SX5E: 'I:SX5E',
+  // Grondstoffen — futures (front month)
+  XAU:  'C:XAUUSD',  // Gold spot
+  XAG:  'C:XAGUSD',  // Silver spot
+  XPT:  'C:XPTUSD',  // Platinum spot
+  WTI:  'C:WTIUSD',  // WTI Crude Oil spot
+  HG:   'C:HGUSD',   // Copper spot
 };
 
 async function fetchPolygonPrev(ticker){
@@ -1299,6 +1302,35 @@ async function fetchPolygonPrev(ticker){
       return {price:res.c,open:res.o,high:res.h,low:res.l,vol:res.v,chg:chgPct};
     }
   }catch(e){console.warn('Polygon fetch failed:',ticker,e);}
+  return null;
+}
+
+async function fetchPolygonSnapshot(ticker){
+  // Enterprise: real-time snapshot voor indices & forex
+  try{
+    let url;
+    if(ticker.startsWith('I:'))
+      url=`https://api.polygon.io/v3/snapshot?ticker.any_of=${ticker}&apiKey=${POLYGON_KEY}`;
+    else if(ticker.startsWith('C:'))
+      url=`https://api.polygon.io/v2/snapshot/locale/global/markets/forex/tickers/${ticker}?apiKey=${POLYGON_KEY}`;
+    else
+      url=`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${POLYGON_KEY}`;
+    const r=await fetch(url);
+    const d=await r.json();
+    // v3 snapshot
+    if(d.results&&d.results[0]){
+      const s=d.results[0];
+      const price=s.session?.close||s.value||s.session?.price||null;
+      const open=s.session?.open||price;
+      const chg=open?((price-open)/open*100):0;
+      return {price,chg,open,high:s.session?.high,low:s.session?.low,vol:s.session?.volume||0};
+    }
+    // v2 snapshot
+    if(d.ticker){
+      const t=d.ticker;const dp=t.todaysChangePerc||0;
+      return {price:t.day?.c||t.lastQuote?.P||0,chg:dp,open:t.day?.o||0,high:t.day?.h||0,low:t.day?.l||0,vol:t.day?.v||0};
+    }
+  }catch(e){console.warn('Snapshot fail:',ticker,e);}
   return null;
 }
 
@@ -1319,13 +1351,14 @@ async function loadLiveData(){
   document.querySelector('.status-dot').style.background='#FF9500';
   document.querySelector('.status-dot').style.boxShadow='0 0 8px #FF9500';
 
-  // Fetch all assets in parallel
+  // Fetch all assets — snapshot first (real-time), fallback to prev
   const promises=ASSETS.map(async a=>{
     const polyTicker=POLYGON_MAP[a.id];
     if(!polyTicker)return;
-    const data=await fetchPolygonPrev(polyTicker);
-    if(data){
-      a.price=data.price;
+    let data=await fetchPolygonSnapshot(polyTicker);
+    if(!data||!data.price)data=await fetchPolygonPrev(polyTicker);
+    if(data&&data.price){
+      a.price=parseFloat(data.price.toFixed(data.price>100?2:4));
       a.chg=parseFloat(data.chg.toFixed(2));
       a.volRaw=data.vol;
     }
