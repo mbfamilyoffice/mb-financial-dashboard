@@ -1689,6 +1689,82 @@ async function loadLiveData(){
 }
 
 /* ════════════════════════════
+   FASTAPI BACKEND KOPPELING
+════════════════════════════ */
+const API_BASE = 'http://localhost:8000';
+let apiAvailable = false;
+
+async function checkAPI() {
+  try {
+    const r = await fetch(`${API_BASE}/health`, {signal: AbortSignal.timeout(2000)});
+    apiAvailable = r.ok;
+  } catch(e) { apiAvailable = false; }
+  return apiAvailable;
+}
+
+async function loadMacroFromAPI() {
+  if (!apiAvailable) return;
+  try {
+    const r = await fetch(`${API_BASE}/api/macro`);
+    const d = await r.json();
+    const ind = d.indicators || {};
+    const vix = d.vix || {};
+
+    // Update macro snapshot
+    const fedVal = ind['Fed Funds Rate']?.value;
+    const cpiVal = ind['CPI (YoY)']?.value;
+    const dxyVal = ind['Dollar Index (DXY)']?.value;
+    const y10Val = ind['10Y Treasury Yield']?.value;
+    const vixVal = vix.close;
+
+    if(fedVal) document.querySelector('.macro-val') && updateMacroRow(0, `${fedVal}%`);
+    if(cpiVal) updateMacroRow(1, `${cpiVal}`);
+    if(dxyVal) updateMacroRow(2, `${parseFloat(dxyVal).toFixed(1)}`);
+    if(y10Val) updateMacroRow(3, `${y10Val}%`);
+    if(vixVal) updateMacroRow(4, `${vixVal}`);
+
+    // Update F&G gauge met VIX proxy
+    if(vixVal) {
+      const fgScore = Math.max(5, Math.min(95, Math.round(100 - (vixVal - 10) * 3)));
+      document.getElementById('fgScore').textContent = fgScore;
+      const fgColor = fgScore < 25 ? '#FF3D71' : fgScore < 45 ? '#FF9500' : fgScore < 55 ? '#FFD700' : fgScore < 75 ? '#90EE90' : '#00E676';
+      const fgLabel = fgScore < 25 ? 'EXTREME FEAR' : fgScore < 45 ? 'FEAR' : fgScore < 55 ? 'NEUTRAL' : fgScore < 75 ? 'GREED' : 'EXTREME GREED';
+      document.getElementById('fgScore').style.color = fgColor;
+      document.getElementById('fgLabel').textContent = fgLabel;
+      document.getElementById('fgLabel').style.color = fgColor;
+    }
+  } catch(e) { console.warn('Macro API error:', e); }
+}
+
+function updateMacroRow(idx, val) {
+  const rows = document.querySelectorAll('.macro-val');
+  if(rows[idx]) rows[idx].textContent = val;
+}
+
+async function loadDarkpoolFromAPI() {
+  if (!apiAvailable) return;
+  try {
+    const r = await fetch(`${API_BASE}/api/flow/darkpool?limit=5`);
+    const d = await r.json();
+    // Toon in signals preview als breaking signal
+    const feed = document.getElementById('signalsPreview');
+    if (feed && d.data && d.data.length) {
+      const dp = d.data[0];
+      console.log(`Dark pool: ${dp.ticker} ${dp.size} @ $${dp.price}`);
+    }
+  } catch(e) {}
+}
+
+async function loadScoreFromAPI(assetId) {
+  if (!apiAvailable) return null;
+  try {
+    const r = await fetch(`${API_BASE}/api/score/${assetId}`);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+/* ════════════════════════════
    INIT
 ════════════════════════════ */
 window.addEventListener('DOMContentLoaded',async ()=>{
@@ -1706,10 +1782,26 @@ window.addEventListener('DOMContentLoaded',async ()=>{
   loadDeepDive('XAU');
   buildJournal();
 
-  // Load live Polygon data
+  // Check of lokale FastAPI beschikbaar is
+  const hasAPI = await checkAPI();
+  if (hasAPI) {
+    console.log('✅ FastAPI backend verbonden op localhost:8000');
+    await loadMacroFromAPI();
+    await loadDarkpoolFromAPI();
+  } else {
+    console.log('ℹ️ FastAPI niet beschikbaar — mock data actief');
+  }
+
+  // Polygon live data
   await loadLiveData();
   // Refresh elke 60 seconden
-  setInterval(loadLiveData, 60000);
+  setInterval(async () => {
+    await loadLiveData();
+    if(apiAvailable) {
+      await loadMacroFromAPI();
+      await loadDarkpoolFromAPI();
+    }
+  }, 60000);
 });
 </script>
 </body>
