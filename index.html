@@ -206,8 +206,29 @@
     ::-webkit-scrollbar-track{background:var(--bg);}
     ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
+    /* ── BOTTOM NAV (mobile) ── */
+    .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(13,15,17,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));display:none;grid-template-columns:repeat(4,1fr);}
+    .bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:color 0.15s;}
+    .bnav-btn.active{color:var(--green);}
+    .bnav-icon{font-size:1.2rem;line-height:1;}
+    .bnav-label{font-size:0.58rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+
     @media(max-width:1200px){.grid-4{grid-template-columns:1fr 1fr;}.grid-5{grid-template-columns:repeat(3,1fr);}.asset-grid{grid-template-columns:repeat(4,1fr);}.heatmap{grid-template-columns:repeat(4,1fr);}}
-    @media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}.portfolio-strip{grid-template-columns:1fr 1fr;}.nav-tabs{display:none;}}
+    @media(max-width:768px){
+      .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+      .portfolio-strip{grid-template-columns:1fr 1fr;}
+      .nav-tabs{display:none;}
+      .bottom-nav{display:grid;}
+      .page{padding-bottom:80px;}
+      .heatmap{grid-template-columns:repeat(3,1fr);}
+      .asset-grid{grid-template-columns:repeat(3,1fr);}
+      .signal-meta{grid-template-columns:1fr 1fr;}
+      .trade-levels{grid-template-columns:1fr 1fr 1fr;}
+      .cat-consensus-grid{grid-template-columns:1fr 1fr 1fr;}
+      .cat-scenario-grid{grid-template-columns:1fr;}
+      .cat-modal{margin:0;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:85vh;}
+      .cat-modal-overlay{align-items:flex-end;padding:0;}
+    }
   </style>
 </head>
 <body>
@@ -475,6 +496,26 @@
   </div>
 </div>
 
+<!-- ── BOTTOM NAV (mobiel) ── -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bnav-btn active" onclick="switchPage('command',this)">
+    <span class="bnav-icon">⚡</span>
+    <span class="bnav-label">Command</span>
+  </button>
+  <button class="bnav-btn" onclick="switchPage('deepdive',this)">
+    <span class="bnav-icon">🔬</span>
+    <span class="bnav-label">Deep Dive</span>
+  </button>
+  <button class="bnav-btn" onclick="switchPage('signals',this)">
+    <span class="bnav-icon">🎯</span>
+    <span class="bnav-label">Signalen</span>
+  </button>
+  <button class="bnav-btn" onclick="switchPage('journal',this)">
+    <span class="bnav-icon">📒</span>
+    <span class="bnav-label">Journal</span>
+  </button>
+</nav>
+
 <script>
 /* ════════════════════════════
    MOCK DATA
@@ -646,7 +687,25 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  event.target.classList.add('active');
+  if(event&&event.target)event.target.classList.add('active');
+  // Sync bottom nav
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const bmap={command:0,deepdive:1,signals:2,journal:3};
+  const btns=document.querySelectorAll('.bnav-btn');
+  if(btns[bmap[id]])btns[bmap[id]].classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function switchPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  const tmap={command:0,deepdive:1,signals:2,journal:3};
+  const tabs=document.querySelectorAll('.nav-tab');
+  if(tabs[tmap[id]])tabs[tmap[id]].classList.add('active');
+  window.scrollTo(0,0);
 }
 
 function pctColor(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--muted)';}
