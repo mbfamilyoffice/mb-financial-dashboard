@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MB Financial Intelligence Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#0D0F11;--card:#141619;--border:#1E2227;
+      --green:#00E676;--red:#FF3D71;--purple:#7B61FF;--blue:#00B0FF;
+      --text:#E8E8E8;--muted:#6B7280;--orange:#FF9500;
+      --green-dark:#00B050;--red-dark:#CC2255;
+    }
+    html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh;font-size:14px;}
+    a{color:inherit;text-decoration:none;}
+
+    /* ── NAV ── */
+    .nav{position:sticky;top:0;z-index:100;background:rgba(13,15,17,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:56px;}
+    .nav-brand{font-weight:700;font-size:1rem;color:var(--green);margin-right:32px;letter-spacing:1px;white-space:nowrap;}
+    .nav-brand span{color:var(--text);}
+    .nav-tabs{display:flex;gap:4px;flex:1;}
+    .nav-tab{padding:8px 16px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all 0.15s;border:none;background:transparent;letter-spacing:0.3px;}
+    .nav-tab.active{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2);}
+    .nav-tab:hover:not(.active){color:var(--text);background:rgba(255,255,255,0.04);}
+    .nav-right{display:flex;align-items:center;gap:12px;margin-left:auto;}
+    .nav-time{font-size:0.75rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+    /* ── LAYOUT ── */
+    .page{display:none;padding:20px 24px 40px;}
+    .page.active{display:block;}
+
+    /* ── GRID ── */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+    .grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+
+    /* ── CARDS ── */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
+    .card-sm{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+    .card-title{font-size:0.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;}
+    .card-value{font-size:1.8rem;font-weight:700;line-height:1;}
+    .card-sub{font-size:0.72rem;color:var(--muted);margin-top:4px;}
+
+    /* ── FEAR & GREED ── */
+    .fg-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+    .fg-gauge{position:relative;width:160px;height:80px;}
+    .fg-gauge canvas{width:160px!important;height:80px!important;}
+    .fg-score{font-size:2.4rem;font-weight:800;text-align:center;}
+    .fg-label{font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;}
+    .fg-sub{font-size:0.65rem;color:var(--muted);text-align:center;}
+
+    /* ── HEAT MAP ── */
+    .heatmap{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+    .hm-cell{border-radius:8px;padding:10px 8px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid transparent;}
+    .hm-cell:hover{border-color:rgba(255,255,255,0.15);transform:scale(1.04);}
+    .hm-ticker{font-size:0.7rem;font-weight:700;color:#fff;}
+    .hm-name{font-size:0.55rem;color:rgba(255,255,255,0.6);margin-top:1px;}
+    .hm-pct{font-size:0.85rem;font-weight:800;margin-top:4px;}
+    .hm-vol{font-size:0.52rem;color:rgba(255,255,255,0.5);margin-top:2px;}
+
+    /* ── MACRO SNAP ── */
+    .macro-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+    .macro-row:last-child{border-bottom:none;}
+    .macro-label{font-size:0.78rem;color:var(--muted);}
+    .macro-val{font-size:0.9rem;font-weight:700;}
+    .macro-chg{font-size:0.7rem;font-weight:600;padding:2px 7px;border-radius:50px;}
+    .up{color:var(--green);}
+    .dn{color:var(--red);}
+    .nt{color:var(--muted);}
+    .badge-up{background:rgba(0,230,118,0.12);color:var(--green);}
+    .badge-dn{background:rgba(255,61,113,0.12);color:var(--red);}
+    .badge-nt{background:rgba(107,114,128,0.12);color:var(--muted);}
+
+    /* ── SIGNALS FEED ── */
+    .signal-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;}
+    .signal-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+    .signal-card.long::before{background:var(--green);}
+    .signal-card.short::before{background:var(--red);}
+    .signal-card:hover{border-color:rgba(255,255,255,0.1);transform:translateX(2px);}
+    .signal-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .signal-badge{font-size:0.65rem;font-weight:800;padding:3px 9px;border-radius:50px;text-transform:uppercase;letter-spacing:1px;}
+    .signal-badge.long{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+    .signal-badge.short{background:rgba(255,61,113,0.15);color:var(--red);border:1px solid rgba(255,61,113,0.3);}
+    .signal-ticker{font-size:1rem;font-weight:800;}
+    .signal-name{font-size:0.72rem;color:var(--muted);}
+    .signal-score{margin-left:auto;font-size:0.75rem;font-weight:700;}
+    .signal-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
+    .signal-meta-item{background:rgba(255,255,255,0.03);border-radius:6px;padding:6px 8px;}
+    .signal-meta-label{font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+    .signal-meta-val{font-size:0.82rem;font-weight:700;margin-top:2px;}
+    .signal-thesis{font-size:0.72rem;color:var(--muted);line-height:1.5;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;}
+    .signal-timeframe{font-size:0.65rem;color:var(--purple);font-weight:600;}
+
+    /* ── RADAR CHART ── */
+    .radar-wrap{position:relative;width:100%;max-width:320px;margin:0 auto;}
+
+    /* ── FACTOR BARS ── */
+    .factor-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(30,34,39,0.8);}
+    .factor-row:last-child{border-bottom:none;}
+    .factor-name{font-size:0.72rem;color:var(--muted);width:170px;flex-shrink:0;}
+    .factor-bar-wrap{flex:1;height:8px;background:#1a1d22;border-radius:50px;overflow:visible;position:relative;}
+    .factor-bar-center{position:absolute;left:50%;top:0;width:1px;height:100%;background:var(--border);transform:translateX(-50%);}
+    .factor-bar-fill{height:100%;border-radius:50px;position:absolute;top:0;transition:width 0.4s ease;}
+    .factor-score{font-size:0.78rem;font-weight:700;width:28px;text-align:right;flex-shrink:0;}
+    .factor-arrow{font-size:0.9rem;width:20px;text-align:center;}
+    .factor-note{font-size:0.65rem;color:var(--muted);flex:1;padding-left:8px;font-style:italic;}
+
+    /* ── ASSET SELECTOR ── */
+    .asset-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px;}
+    .asset-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;cursor:pointer;transition:all 0.15s;}
+    .asset-btn:hover,.asset-btn.active{border-color:var(--green);background:rgba(0,230,118,0.06);}
+    .asset-btn.active .asset-btn-ticker{color:var(--green);}
+    .asset-btn-ticker{font-size:0.75rem;font-weight:700;display:block;}
+    .asset-btn-name{font-size:0.58rem;color:var(--muted);margin-top:2px;display:block;}
+    .asset-btn-pct{font-size:0.75rem;font-weight:700;margin-top:3px;display:block;}
+
+    /* ── SECTION TITLE ── */
+    .section-title{font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin:20px 0 12px;display:flex;align-items:center;gap:8px;}
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+    /* ── SCORE DISPLAY ── */
+    .overall-score{text-align:center;padding:20px;}
+    .score-num{font-size:3.5rem;font-weight:900;line-height:1;}
+    .score-max{font-size:1rem;color:var(--muted);}
+    .score-label{font-size:0.85rem;font-weight:700;margin-top:6px;padding:4px 16px;border-radius:50px;display:inline-block;}
+    .score-label.strong-buy{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+    .score-label.buy{background:rgba(0,176,255,0.15);color:var(--blue);border:1px solid rgba(0,176,255,0.3);}
+    .score-label.avoid{background:rgba(255,61,113,0.15);color:var(--red);border:1px solid rgba(255,61,113,0.3);}
+    .score-label.neutral{background:rgba(107,114,128,0.15);color:var(--muted);border:1px solid rgba(107,114,128,0.3);}
+
+    /* ── TRADE DETAIL ── */
+    .trade-levels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;}
+    .trade-level{background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;text-align:center;}
+    .trade-level-label{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+    .trade-level-val{font-size:1.1rem;font-weight:800;margin-top:4px;}
+    .trade-level-pct{font-size:0.7rem;font-weight:600;margin-top:2px;}
+
+    /* ── JOURNAL TABLE ── */
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+    td{padding:10px 12px;border-bottom:1px solid rgba(30,34,39,0.6);font-size:0.8rem;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(255,255,255,0.02);}
+
+    /* ── PORTFOLIO STRIP ── */
+    .portfolio-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+    .pf-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+    .pf-label{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+    .pf-val{font-size:1.5rem;font-weight:800;margin-top:4px;}
+    .pf-sub{font-size:0.7rem;margin-top:2px;}
+
+    /* ── CATALYST ── */
+    .catalyst-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+    .catalyst-item:last-child{border-bottom:none;}
+    .catalyst-date{font-size:0.68rem;font-weight:700;color:var(--purple);width:70px;flex-shrink:0;}
+    .catalyst-name{font-size:0.8rem;font-weight:600;}
+    .catalyst-impact{font-size:0.65rem;padding:2px 8px;border-radius:50px;}
+    .impact-high{background:rgba(255,61,113,0.15);color:var(--red);}
+    .impact-med{background:rgba(255,149,0,0.15);color:var(--orange);}
+    .impact-low{background:rgba(107,114,128,0.15);color:var(--muted);}
+
+    /* ── SPARKLINE ── */
+    .sparkline{height:40px;width:100%;}
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar{width:6px;height:6px;}
+    ::-webkit-scrollbar-track{background:var(--bg);}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+    @media(max-width:1200px){.grid-4{grid-template-columns:1fr 1fr;}.grid-5{grid-template-columns:repeat(3,1fr);}.asset-grid{grid-template-columns:repeat(4,1fr);}.heatmap{grid-template-columns:repeat(4,1fr);}}
+    @media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}.portfolio-strip{grid-template-columns:1fr 1fr;}.nav-tabs{display:none;}}
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <div class="nav-brand">MB<span> Intelligence</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('command')">⚡ Command Center</button>
+    <button class="nav-tab" onclick="showPage('deepdive')">🔬 Asset Deep Dive</button>
+    <button class="nav-tab" onclick="showPage('signals')">🎯 Trading Signals</button>
+    <button class="nav-tab" onclick="showPage('journal')">📒 Trade Journal</button>
+  </div>
+  <div class="nav-right">
+    <div class="status-dot"></div>
+    <div class="nav-time" id="navTime">--:--:--</div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════
+     PAGE 1: COMMAND CENTER
+════════════════════════════════ -->
+<div class="page active" id="page-command">
+
+  <!-- Portfolio Strip -->
+  <div class="portfolio-strip">
+    <div class="pf-card">
+      <div class="pf-label">Portfolio Value</div>
+      <div class="pf-val" style="color:var(--green)">€ 512.840</div>
+      <div class="pf-sub up">+€ 12.840 (+2.57%) all time</div>
+    </div>
+    <div class="pf-card">
+      <div class="pf-label">Dag P&L</div>
+      <div class="pf-val" style="color:var(--green)">+€ 3.240</div>
+      <div class="pf-sub up">+0.64% vandaag</div>
+    </div>
+    <div class="pf-card">
+      <div class="pf-label">Open Posities</div>
+      <div class="pf-val">3</div>
+      <div class="pf-sub nt">2 long · 1 short</div>
+    </div>
+    <div class="pf-card">
+      <div class="pf-label">Win Rate (30d)</div>
+      <div class="pf-val">67%</div>
+      <div class="pf-sub nt">8 van 12 trades</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px;">
+
+    <!-- Fear & Greed -->
+    <div class="card">
+      <div class="card-title">Fear & Greed Index</div>
+      <div class="fg-wrap">
+        <canvas id="fgGauge" width="160" height="80"></canvas>
+        <div class="fg-score" id="fgScore" style="color:#FF9500">38</div>
+        <div class="fg-label" id="fgLabel" style="color:#FF9500">FEAR</div>
+        <div class="fg-sub">Gisteren: 41 · Vorige week: 55 · Vorige maand: 62</div>
+      </div>
+    </div>
+
+    <!-- Macro Snapshot -->
+    <div class="card">
+      <div class="card-title">Macro Snapshot</div>
+      <div class="macro-row">
+        <span class="macro-label">Fed Funds Rate</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <canvas class="sparkline" id="sp-fed" width="80" height="40" style="width:80px;height:40px;"></canvas>
+          <span class="macro-val">5.25%</span>
+          <span class="macro-chg badge-nt">Ongewijzigd</span>
+        </div>
+      </div>
+      <div class="macro-row">
+        <span class="macro-label">CPI (YoY)</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <canvas class="sparkline" id="sp-cpi" width="80" height="40" style="width:80px;height:40px;"></canvas>
+          <span class="macro-val">3.2%</span>
+          <span class="macro-chg badge-up">▼ -0.1</span>
+        </div>
+      </div>
+      <div class="macro-row">
+        <span class="macro-label">DXY (Dollar Index)</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <canvas class="sparkline" id="sp-dxy" width="80" height="40" style="width:80px;height:40px;"></canvas>
+          <span class="macro-val">104.2</span>
+          <span class="macro-chg badge-dn">▲ +0.4</span>
+        </div>
+      </div>
+      <div class="macro-row">
+        <span class="macro-label">10Y Treasury</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <canvas class="sparkline" id="sp-10y" width="80" height="40" style="width:80px;height:40px;"></canvas>
+          <span class="macro-val">4.38%</span>
+          <span class="macro-chg badge-dn">▲ +0.08</span>
+        </div>
+      </div>
+      <div class="macro-row">
+        <span class="macro-label">VIX</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <canvas class="sparkline" id="sp-vix" width="80" height="40" style="width:80px;height:40px;"></canvas>
+          <span class="macro-val">18.4</span>
+          <span class="macro-chg badge-dn">▲ Elevated</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heatmap -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Watchlist Heat Map — Dagperformance</div>
+    <div class="heatmap" id="heatmap"></div>
+  </div>
+
+  <!-- Top Signals Preview -->
+  <div class="section-title">🎯 Actieve Signalen</div>
+  <div id="signalsPreview"></div>
+
+</div>
+
+<!-- ════════════════════════════════
+     PAGE 2: ASSET DEEP DIVE
+════════════════════════════════ -->
+<div class="page" id="page-deepdive">
+
+  <div class="asset-grid" id="assetSelector"></div>
+
+  <div class="grid-2" style="margin-bottom:16px;">
+
+    <!-- Overall Score -->
+    <div class="card">
+      <div class="card-title">Overall Score — <span id="ddAssetName">Goud (XAU/USD)</span></div>
+      <div class="overall-score">
+        <div class="score-num" id="ddScore" style="color:var(--green)">+28</div>
+        <div class="score-max">/40</div>
+        <div class="score-label strong-buy" id="ddScoreLabel">STRONG BUY</div>
+      </div>
+      <!-- Trade Levels -->
+      <div class="trade-levels">
+        <div class="trade-level">
+          <div class="trade-level-label">Entry Zone</div>
+          <div class="trade-level-val" style="color:var(--blue)">$2.285</div>
+          <div class="trade-level-pct nt">— $2.310</div>
+        </div>
+        <div class="trade-level">
+          <div class="trade-level-label">Target 1 / 2</div>
+          <div class="trade-level-val" style="color:var(--green)">$2.380</div>
+          <div class="trade-level-pct up">+3.5% / +6.1%</div>
+        </div>
+        <div class="trade-level">
+          <div class="trade-level-label">Stop-Loss</div>
+          <div class="trade-level-val" style="color:var(--red)">$2.248</div>
+          <div class="trade-level-pct dn">-1.8% · R/R 1:3.4</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Radar Chart -->
+    <div class="card">
+      <div class="card-title">8-Factor Radar</div>
+      <div class="radar-wrap" style="max-width:280px;">
+        <canvas id="radarChart" width="280" height="280"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Factor Detail Bars -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Factor Detail</div>
+    <div id="factorBars"></div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Thesis -->
+    <div class="card">
+      <div class="card-title">AI Thesis</div>
+      <p id="ddThesis" style="font-size:0.82rem;line-height:1.7;color:var(--text);margin-bottom:14px;"></p>
+      <div style="background:rgba(255,61,113,0.06);border:1px solid rgba(255,61,113,0.15);border-radius:8px;padding:12px;">
+        <div style="font-size:0.65rem;color:var(--red);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px;">⚠ Risico's</div>
+        <div id="ddRisks" style="font-size:0.78rem;line-height:1.6;color:var(--muted);"></div>
+      </div>
+    </div>
+    <!-- Catalyst Calendar -->
+    <div class="card">
+      <div class="card-title">Catalyst Calendar</div>
+      <div id="catalystList"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════
+     PAGE 3: TRADING SIGNALS
+════════════════════════════════ -->
+<div class="page" id="page-signals">
+  <div class="grid-4" style="margin-bottom:20px;">
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Actieve Signalen</div>
+      <div class="card-value" style="color:var(--green)">5</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Gem. R/R Ratio</div>
+      <div class="card-value">1:3.2</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Hit Rate (30d)</div>
+      <div class="card-value" style="color:var(--green)">67%</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Risico in markt</div>
+      <div class="card-value" style="color:var(--orange)">24%</div>
+    </div>
+  </div>
+  <div id="allSignals"></div>
+</div>
+
+<!-- ════════════════════════════════
+     PAGE 4: TRADE JOURNAL
+════════════════════════════════ -->
+<div class="page" id="page-journal">
+  <div class="grid-4" style="margin-bottom:20px;">
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Totaal Trades</div>
+      <div class="card-value">12</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Winners</div>
+      <div class="card-value" style="color:var(--green)">8</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Losers</div>
+      <div class="card-value" style="color:var(--red)">4</div>
+    </div>
+    <div class="card-sm" style="text-align:center;">
+      <div class="card-title" style="text-align:center;">Netto P&L</div>
+      <div class="card-value" style="color:var(--green)">+€ 18.450</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Trade History</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Datum</th><th>Asset</th><th>Dir.</th><th>Entry</th><th>Exit</th>
+          <th>P&L</th><th>P&L %</th><th>R Mult.</th><th>Score</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="journalBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════
+   MOCK DATA
+════════════════════════════ */
+const ASSETS = [
+  // Grondstoffen
+  {id:'XAU',ticker:'XAU',name:'Goud',type:'commodity',price:2318,chg:+1.24,vol:'1.2x'},
+  {id:'XAG',ticker:'XAG',name:'Zilver',type:'commodity',price:27.42,chg:+2.11,vol:'1.8x'},
+  {id:'XPT',ticker:'XPT',name:'Platinum',type:'commodity',price:912,chg:-0.43,vol:'0.9x'},
+  {id:'WTI',ticker:'WTI',name:'Ruwe Olie',type:'commodity',price:82.15,chg:-1.22,vol:'1.1x'},
+  {id:'HG',ticker:'HG',name:'Koper',type:'commodity',price:4.12,chg:+0.88,vol:'1.3x'},
+  // US Indices
+  {id:'SPX',ticker:'SPX',name:'S&P 500',type:'index',price:5204,chg:+0.52,vol:'1.0x'},
+  {id:'NDX',ticker:'NDX',name:'Nasdaq 100',type:'index',price:18142,chg:+0.81,vol:'1.1x'},
+  {id:'DJI',ticker:'DJI',name:'Dow Jones',type:'index',price:38905,chg:+0.24,vol:'0.8x'},
+  {id:'RUT',ticker:'RUT',name:'Russell 2000',type:'index',price:2048,chg:-0.31,vol:'0.9x'},
+  // EU Indices
+  {id:'AEX',ticker:'AEX',name:'AEX',type:'index',price:871,chg:+0.61,vol:'1.0x'},
+  {id:'DAX',ticker:'DAX',name:'DAX',type:'index',price:18124,chg:+0.44,vol:'1.0x'},
+  {id:'CAC',ticker:'CAC',name:'CAC 40',type:'index',price:8028,chg:-0.18,vol:'0.9x'},
+  {id:'FTSE',ticker:'FTSE',name:'FTSE 100',type:'index',price:7952,chg:+0.33,vol:'0.8x'},
+  {id:'SX5E',ticker:'SX5E',name:'Euro Stoxx 50',type:'index',price:5014,chg:+0.27,vol:'0.9x'},
+];
+
+const SIGNALS = [
+  {
+    dir:'long',ticker:'XAU',name:'Goud',exchange:'CME/COMEX',
+    timeframe:'Swing 1-2 weken',
+    entry:[2285,2310],t1:2380,t1pct:3.5,t2:2440,t2pct:5.9,
+    sl:2248,slpct:1.8,rr:3.4,posSize:50000,posMax:5000,
+    score:28,rating:'Strong Buy',
+    factors:[
+      {name:'Sentiment & Psychologie',score:4,dir:'up',note:'Fear-gedreven vlucht naar veiligheid, retail inflows stijgend'},
+      {name:'Macro-economisch',score:4,dir:'up',note:'CPI daalt maar boven 3%, Fed pauze verwacht Q3'},
+      {name:'Geopolitiek',score:4,dir:'up',note:'Midden-Oosten spanningen + sancties Rusland blijven steunen'},
+      {name:'Bedrijfsfundamentals',score:0,dir:'nt',note:'N/v.t. — grondstof'},
+      {name:'Technische analyse',score:3,dir:'up',note:'Boven 200MA, RSI 58 niet overbought, bullish flag'},
+      {name:'Grondstoffen-specifiek',score:4,dir:'up',note:'Centrale bank goudaankopen recordhoog (2024: 1.037 ton)'},
+      {name:'Liquiditeit & Flow',score:3,dir:'up',note:'ETF inflows positief na 8 maanden outflow'},
+      {name:'Correlaties & Cross-asset',score:3,dir:'up',note:'Negatieve correlatie DXY, 10Y yield plateaued'},
+    ],
+    thesis:'Goud bevindt zich in een structurele bull markt gedreven door centrale bank diversificatie weg van dollars, aanhoudende geopolitieke risicopremie en een naderende Fed pivotel. De technische setup toont een bullish vlag na consolidatie boven $2.250. Centrale banken kochten in 2024 recordhoeveelheden. Entry op dip naar steunzone $2.285-$2.310.',
+    risks:['Fed hawkisher dan verwacht → DXY breakout boven 106 breekt thesis','Risk-on rally waarbij cash flows naar equities → goud selloff','Snelle de-escalatie Midden-Oosten → geopolitieke premie valt weg'],
+    catalysts:[
+      {date:'10 Apr',name:'US CPI Release',impact:'high'},
+      {date:'17 Apr',name:'Fed Beige Book',impact:'med'},
+      {date:'1 Mei',name:'FOMC Meeting',impact:'high'},
+      {date:'12 Apr',name:'China Gold Import Data',impact:'med'},
+    ]
+  },
+  {
+    dir:'long',ticker:'XAG',name:'Zilver',exchange:'CME/COMEX',
+    timeframe:'Swing 2-5 dagen',
+    entry:[27.20,27.60],t1:28.80,t1pct:4.9,t2:30.20,t2pct:9.0,
+    sl:26.40,slpct:2.9,rr:2.7,posSize:30000,posMax:870,
+    score:22,rating:'Buy',
+    factors:[
+      {name:'Sentiment & Psychologie',score:3,dir:'up',note:'Gold/Silver ratio 84x → zilver historisch goedkoop'},
+      {name:'Macro-economisch',score:3,dir:'up',note:'Industriële vraag stijgt, EV/solar boom'},
+      {name:'Geopolitiek',score:2,dir:'up',note:'Supply disrupties Mexico (grootste producer)'},
+      {name:'Bedrijfsfundamentals',score:0,dir:'nt',note:'N/v.t.'},
+      {name:'Technische analyse',score:4,dir:'up',note:'Breakout boven $27 weerstand, volume 1.8x gemiddelde'},
+      {name:'Grondstoffen-specifiek',score:3,dir:'up',note:'LME voorraden dalen, industriële vraag overtreft aanbod'},
+      {name:'Liquiditeit & Flow',score:3,dir:'up',note:'COT: commercial shorts afgenomen'},
+      {name:'Correlaties & Cross-asset',score:2,dir:'up',note:'Volgt goud met leverage, solar demand upside'},
+    ],
+    thesis:'Zilver heeft een technische breakout gezet boven de $27 weerstandszone met verhoogd volume. De Gold/Silver ratio van 84x suggereert zilver historisch ondergewaardeerd t.o.v. goud. De combinatie van monetaire en industriële vraag (solar panels, EV-productie) creëert dubbele vraagcatalyst. Target $28.80 op swing basis.',
+    risks:['Risk-off selloff → zilver valt harder dan goud','Industriële vraag afname bij macro-verslechtering','Sterke dollar breekt commodity rally'],
+    catalysts:[
+      {date:'10 Apr',name:'US CPI Release',impact:'high'},
+      {date:'15 Apr',name:'China Industrial Output',impact:'med'},
+      {date:'18 Apr',name:'EIA Silver Report',impact:'low'},
+    ]
+  },
+  {
+    dir:'short',ticker:'WTI',name:'Ruwe Olie (WTI)',exchange:'CME/NYMEX',
+    timeframe:'Swing 2-5 dagen',
+    entry:[82.50,83.00],t1:79.50,t1pct:3.6,t2:77.00,t2pct:6.7,
+    sl:84.80,slpct:2.2,rr:2.5,posSize:25000,posMax:550,
+    score:-14,rating:'Avoid',
+    factors:[
+      {name:'Sentiment & Psychologie',score:-2,dir:'dn',note:'Demand concerns domineren sentiment'},
+      {name:'Macro-economisch',score:-3,dir:'dn',note:'PMI manufacturing VS en EU beiden onder 50'},
+      {name:'Geopolitiek',score:2,dir:'up',note:'Midden-Oosten conflict steunen prijs'},
+      {name:'Bedrijfsfundamentals',score:0,dir:'nt',note:'N/v.t.'},
+      {name:'Technische analyse',score:-3,dir:'dn',note:'Death cross 50/200MA, RSI 42 dalend, weerstand $83'},
+      {name:'Grondstoffen-specifiek',score:-4,dir:'dn',note:'EIA: inventories +4.2M vaten vs. -1.5M verwacht'},
+      {name:'Liquiditeit & Flow',score:-2,dir:'dn',note:'ETF outflows energie sector week 4 op rij'},
+      {name:'Correlaties & Cross-asset',score:-2,dir:'dn',note:'DXY sterk, recessievrees high yield spreads'},
+    ],
+    thesis:'WTI olie staat technisch zwak na het breken van de 50-daags MA met verhoogd volume. De EIA inventorydata toonde een verrassend grote opbouw van +4.2M vaten. PMI data in VS en EU wijzen op vertragende industriële activiteit en daarmee verminderde vraag. Short positie met stop boven $84.80 geopolitiek weerstandsniveau.',
+    risks:['OPEC+ noodvergadering met productiekorting','Midden-Oosten escalatie → $90+ spike','Onverwacht sterke US jobs data → risk-on'],
+    catalysts:[
+      {date:'10 Apr',name:'EIA Weekly Inventory',impact:'high'},
+      {date:'3 Apr',name:'OPEC Monthly Report',impact:'high'},
+      {date:'15 Apr',name:'China GDP Q1',impact:'med'},
+    ]
+  },
+  {
+    dir:'long',ticker:'SPX',name:'S&P 500',exchange:'CME/NYSE',
+    timeframe:'Swing 1-2 weken',
+    entry:[5180,5210],t1:5340,t1pct:2.9,t2:5420,t2pct:4.4,
+    sl:5090,slpct:1.7,rr:2.5,posSize:40000,posMax:680,
+    score:18,rating:'Buy',
+    factors:[
+      {name:'Sentiment & Psychologie',score:2,dir:'up',note:'Fear index 38 → contrarian bullish bij oversold sentiment'},
+      {name:'Macro-economisch',score:2,dir:'up',note:'Soft landing scenario intact, CPI trend dalend'},
+      {name:'Geopolitiek',score:-1,dir:'dn',note:'Tarieven-onzekerheid drukt tech sector'},
+      {name:'Bedrijfsfundamentals',score:3,dir:'up',note:'Q1 earnings season start: 76% beat rate YTD'},
+      {name:'Technische analyse',score:3,dir:'up',note:'Boven 200MA, 5.180 sterke steun, bounce setup'},
+      {name:'Grondstoffen-specifiek',score:0,dir:'nt',note:'N/v.t.'},
+      {name:'Liquiditeit & Flow',score:2,dir:'up',note:'Fed balance sheet stabiel, M2 groei herstellend'},
+      {name:'Correlaties & Cross-asset',score:1,dir:'up',note:'Credit spreads normaal, geen recessiesignaal'},
+    ],
+    thesis:'De S&P 500 heeft teruggetest op de sterke steunzone van 5.180-5.210 punten na een correctie van 4.2% vanuit all-time highs. Sentiment is gedaald naar Fear-niveau wat historisch een contrarian koopsignaal is. Q1 earnings season start volgende week met verwachte EPS-groei van +8.5% YoY. Positie sizing conservatief gezien macro-onzekerheid.',
+    risks:['CPI surprises upward → stagflatie angst','Fed hawkish pivot bij persistente inflatie','Earnings misses door hoge rente impact op margins'],
+    catalysts:[
+      {date:'10 Apr',name:'US CPI Release',impact:'high'},
+      {date:'12 Apr',name:'JP Morgan Earnings Q1',impact:'high'},
+      {date:'15 Apr',name:'Goldman Sachs Earnings',impact:'med'},
+      {date:'1 Mei',name:'FOMC Rate Decision',impact:'high'},
+    ]
+  },
+  {
+    dir:'long',ticker:'HG',name:'Koper',exchange:'CME/LME',
+    timeframe:'Swing 1-2 weken',
+    entry:[4.05,4.15],t1:4.40,t1pct:6.7,t2:4.65,t2pct:12.0,
+    sl:3.90,slpct:3.6,rr:2.5,posSize:20000,posMax:720,
+    score:20,rating:'Buy',
+    factors:[
+      {name:'Sentiment & Psychologie',score:2,dir:'up',note:'Hernieuwde interesse na China stimulus aankondiging'},
+      {name:'Macro-economisch',score:3,dir:'up',note:'China PMI manufacturing 50.8 → expansie'},
+      {name:'Geopolitiek',score:1,dir:'up',note:'Chile (45% productie) stabiel, geen disruptie'},
+      {name:'Bedrijfsfundamentals',score:0,dir:'nt',note:'N/v.t.'},
+      {name:'Technische analyse',score:3,dir:'up',note:'Breakout boven $4.10 weerstand, bullish momentum'},
+      {name:'Grondstoffen-specifiek',score:4,dir:'up',note:'LME voorraden -18% in 30 dagen, EV vraag stijgend'},
+      {name:'Liquiditeit & Flow',score:3,dir:'up',note:'Speculatieve longs toenemen in COT rapport'},
+      {name:'Correlaties & Cross-asset',score:2,dir:'up',note:'Dr. Copper als leading indicator: economisch herstel signaal'},
+    ],
+    thesis:'Koper breekt uit een 6-maanden consolidatiepatroon met volumes 1.3x boven gemiddelde. LME voorraden zijn gedaald met 18% in 30 dagen terwijl de vraag vanuit de energietransitie (solar, wind, EV) structureel toeneemt. China PMI signaleert herstel industriële activiteit. "Dr. Copper" als leading indicator bevestigt risk-on.',
+    risks:['China vraag tegenvalt door vastgoedcrisis','Sterke dollar maakt dollar-genoteerde grondstoffen duurder','Recessie VS/EU → industriële vraag crasht'],
+    catalysts:[
+      {date:'15 Apr',name:'China GDP Q1 2024',impact:'high'},
+      {date:'16 Apr',name:'LME Copper Inventory Update',impact:'med'},
+      {date:'22 Apr',name:'China Industrial Production',impact:'med'},
+    ]
+  },
+];
+
+const JOURNAL_DATA = [
+  {date:'01 Apr',asset:'XAU',dir:'LONG',entry:'2.268',exit:'2.318',pnl:'+€4.200',pct:'+2.2%',r:'+1.8',score:26,status:'closed'},
+  {date:'28 Mrt',asset:'SPX',dir:'LONG',entry:'5.150',exit:'5.204',pnl:'+€3.100',pct:'+1.0%',r:'+1.4',score:20,status:'closed'},
+  {date:'25 Mrt',asset:'WTI',dir:'SHORT',entry:'82.40',exit:'79.80',pnl:'+€6.500',pct:'+3.2%',r:'+2.8',score:18,status:'closed'},
+  {date:'20 Mrt',asset:'XAG',dir:'LONG',entry:'25.80',exit:'24.90',pnl:'-€2.800',pct:'-3.5%',r:'-1.0',score:14,status:'closed'},
+  {date:'15 Mrt',asset:'HG',dir:'LONG',entry:'3.95',exit:'4.12',pnl:'+€5.100',pct:'+4.3%',r:'+2.4',score:22,status:'closed'},
+  {date:'10 Mrt',asset:'DAX',dir:'LONG',entry:'17.680',exit:'18.124',pnl:'+€4.440',pct:'+2.5%',r:'+2.2',score:19,status:'closed'},
+  {date:'05 Mrt',asset:'XAU',dir:'LONG',entry:'2.090',exit:'2.180',pnl:'+€9.000',pct:'+4.3%',r:'+3.1',score:30,status:'closed'},
+  {date:'28 Feb',asset:'WTI',dir:'LONG',entry:'78.50',exit:'75.20',pnl:'-€3.300',pct:'-4.2%',r:'-1.0',score:10,status:'closed'},
+  {date:'20 Feb',asset:'NDX',dir:'LONG',entry:'17.500',exit:'18.142',pnl:'+€6.420',pct:'+3.7%',r:'+2.9',score:24,status:'closed'},
+  {date:'12 Feb',asset:'XPT',dir:'LONG',entry:'950',exit:'912',pnl:'-€3.800',pct:'-4.0%',r:'-1.0',score:12,status:'closed'},
+  {date:'05 Feb',asset:'HG',dir:'SHORT',entry:'3.80',exit:'3.65',pnl:'+€3.750',pct:'+3.9%',r:'+2.7',score:16,status:'closed'},
+  {date:'28 Jan',asset:'SPX',dir:'LONG',entry:'4.920',exit:'5.040',pnl:'+€6.000',pct:'+2.4%',r:'+2.1',score:22,status:'closed'},
+];
+
+/* ════════════════════════════
+   UTILS
+════════════════════════════ */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function pctColor(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--muted)';}
+function scoreColor(s){return s>=20?'var(--green)':s>=10?'var(--blue)':s>=0?'var(--muted)':'var(--red)';}
+function ratingLabel(s){return s>=20?'Strong Buy':s>=10?'Buy':s>=-10?'Neutral':'Avoid';}
+function ratingClass(s){return s>=20?'strong-buy':s>=10?'buy':s>=-10?'neutral':'avoid';}
+function factorArrow(d){return d==='up'?'▲':d==='dn'?'▼':'━';}
+function factorArrowColor(d){return d==='up'?'var(--green)':d==='dn'?'var(--red)':'var(--muted)';}
+function factorBarColor(s){return s>0?'var(--green)':s<0?'var(--red)':'var(--muted)';}
+
+/* ════════════════════════════
+   CLOCK
+════════════════════════════ */
+function updateClock(){
+  const now=new Date();
+  const t=now.toLocaleTimeString('nl-NL',{timeZone:'Europe/Amsterdam',hour12:false});
+  document.getElementById('navTime').textContent=t+' AMS';
+}
+setInterval(updateClock,1000);updateClock();
+
+/* ════════════════════════════
+   FEAR & GREED GAUGE
+════════════════════════════ */
+function drawFGGauge(){
+  const canvas=document.getElementById('fgGauge');
+  const ctx=canvas.getContext('2d');
+  const w=160,h=80,cx=80,cy=78,r=64;
+  ctx.clearRect(0,0,w,h);
+  const segments=[
+    {color:'#FF3D71',from:Math.PI,to:Math.PI*1.2},
+    {color:'#FF6B35',from:Math.PI*1.2,to:Math.PI*1.4},
+    {color:'#FFD700',from:Math.PI*1.4,to:Math.PI*1.6},
+    {color:'#90EE90',from:Math.PI*1.6,to:Math.PI*1.8},
+    {color:'#00E676',from:Math.PI*1.8,to:Math.PI*2},
+  ];
+  segments.forEach(s=>{
+    ctx.beginPath();ctx.arc(cx,cy,r,s.from,s.to);
+    ctx.arc(cx,cy,r-16,s.to,s.from,true);
+    ctx.fillStyle=s.color+'88';ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,r,s.from,s.to);
+    ctx.lineWidth=2;ctx.strokeStyle=s.color;ctx.stroke();
+  });
+  // Needle
+  const val=38,angle=Math.PI+(val/100)*Math.PI;
+  const nx=cx+Math.cos(angle)*(r-8),ny=cy+Math.sin(angle)*(r-8);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(nx,ny);
+  ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);
+  ctx.fillStyle='#fff';ctx.fill();
+}
+
+/* ════════════════════════════
+   SPARKLINES
+════════════════════════════ */
+function drawSparkline(id,data,color){
+  const canvas=document.getElementById(id);
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const mn=Math.min(...data),mx=Math.max(...data),range=mx-mn||1;
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=(i/(data.length-1))*w;
+    const y=h-(((v-mn)/range)*(h-4)+2);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+}
+
+/* ════════════════════════════
+   HEATMAP
+════════════════════════════ */
+function buildHeatmap(){
+  const el=document.getElementById('heatmap');el.innerHTML='';
+  ASSETS.forEach(a=>{
+    const v=a.chg;
+    const intensity=Math.min(Math.abs(v)/3,1);
+    const bg=v>0
+      ?`rgba(0,230,118,${0.1+intensity*0.4})`
+      :`rgba(255,61,113,${0.1+intensity*0.4})`;
+    const cell=document.createElement('div');
+    cell.className='hm-cell';
+    cell.style.background=bg;
+    cell.innerHTML=`
+      <div class="hm-ticker">${a.ticker}</div>
+      <div class="hm-name">${a.name}</div>
+      <div class="hm-pct" style="color:${v>0?'var(--green)':'var(--red)'}">${v>0?'+':''}${v.toFixed(2)}%</div>
+      <div class="hm-vol">Vol ${a.vol}</div>
+    `;
+    cell.onclick=()=>{
+      showPage.call({target:document.querySelector('[onclick="showPage(\'deepdive\')"]')},'deepdive');
+      document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.nav-tab')[1].classList.add('active');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById('page-deepdive').classList.add('active');
+      loadDeepDive(a.id);
+    };
+    el.appendChild(cell);
+  });
+}
+
+/* ════════════════════════════
+   SIGNALS
+════════════════════════════ */
+function renderSignalCard(sig){
+  const isLong=sig.dir==='long';
+  const sc=sig.score;
+  return `
+    <div class="signal-card ${sig.dir}" onclick="openSignalDetail('${sig.ticker}')">
+      <div class="signal-header">
+        <span class="signal-badge ${sig.dir}">${isLong?'▲ LONG':'▼ SHORT'}</span>
+        <div>
+          <div class="signal-ticker">${sig.ticker} — ${sig.name}</div>
+          <div class="signal-name">${sig.exchange} · <span class="signal-timeframe">${sig.timeframe}</span></div>
+        </div>
+        <div class="signal-score" style="color:${scoreColor(sc)}">
+          ${sc>0?'+':''}${sc}/40<br>
+          <span style="font-size:0.65rem;font-weight:600;color:${scoreColor(sc)}">${ratingLabel(sc)}</span>
+        </div>
+      </div>
+      <div class="signal-meta">
+        <div class="signal-meta-item">
+          <div class="signal-meta-label">Entry Zone</div>
+          <div class="signal-meta-val" style="color:var(--blue)">$${sig.entry[0].toLocaleString()}</div>
+        </div>
+        <div class="signal-meta-item">
+          <div class="signal-meta-label">Target 1</div>
+          <div class="signal-meta-val" style="color:var(--green)">$${sig.t1.toLocaleString()} <span style="font-size:0.65rem">${isLong?'+':''}${sig.t1pct}%</span></div>
+        </div>
+        <div class="signal-meta-item">
+          <div class="signal-meta-label">Stop-Loss</div>
+          <div class="signal-meta-val" style="color:var(--red)">$${sig.sl.toLocaleString()} <span style="font-size:0.65rem">-${sig.slpct}%</span></div>
+        </div>
+        <div class="signal-meta-item">
+          <div class="signal-meta-label">R/R · Positie</div>
+          <div class="signal-meta-val">1:${sig.rr} · €${(sig.posSize/1000).toFixed(0)}K</div>
+        </div>
+      </div>
+      <div class="signal-thesis">${sig.thesis.substring(0,180)}…</div>
+    </div>
+  `;
+}
+
+function buildSignalsPreview(){
+  const el=document.getElementById('signalsPreview');
+  el.innerHTML=SIGNALS.slice(0,3).map(renderSignalCard).join('');
+}
+
+function buildAllSignals(){
+  const el=document.getElementById('allSignals');
+  el.innerHTML=SIGNALS.map(renderSignalCard).join('');
+}
+
+/* ════════════════════════════
+   DEEP DIVE
+════════════════════════════ */
+let activeAsset=ASSETS[0].id;
+let radarChartInstance=null;
+
+function buildAssetSelector(){
+  const el=document.getElementById('assetSelector');el.innerHTML='';
+  ASSETS.forEach(a=>{
+    const btn=document.createElement('div');
+    btn.className='asset-btn'+(a.id===activeAsset?' active':'');
+    btn.innerHTML=`
+      <span class="asset-btn-ticker">${a.ticker}</span>
+      <span class="asset-btn-name">${a.name}</span>
+      <span class="asset-btn-pct" style="color:${pctColor(a.chg)}">${a.chg>0?'+':''}${a.chg}%</span>
+    `;
+    btn.onclick=()=>loadDeepDive(a.id);
+    el.appendChild(btn);
+  });
+}
+
+function loadDeepDive(assetId){
+  activeAsset=assetId;
+  document.querySelectorAll('.asset-btn').forEach((b,i)=>{
+    b.classList.toggle('active',ASSETS[i].id===assetId);
+  });
+
+  const sig=SIGNALS.find(s=>s.ticker===assetId)||SIGNALS[0];
+  const asset=ASSETS.find(a=>a.id===assetId)||ASSETS[0];
+
+  document.getElementById('ddAssetName').textContent=`${asset.name} (${asset.ticker})`;
+
+  // Score
+  const sc=sig.score;
+  document.getElementById('ddScore').textContent=(sc>0?'+':'')+sc;
+  document.getElementById('ddScore').style.color=scoreColor(sc);
+  const lbl=document.getElementById('ddScoreLabel');
+  lbl.textContent=ratingLabel(sc).toUpperCase();
+  lbl.className='score-label '+ratingClass(sc);
+
+  // Thesis
+  document.getElementById('ddThesis').textContent=sig.thesis;
+  document.getElementById('ddRisks').innerHTML=sig.risks.map(r=>`• ${r}`).join('<br>');
+
+  // Factor bars
+  const fb=document.getElementById('factorBars');fb.innerHTML='';
+  sig.factors.forEach(f=>{
+    const pct=((f.score+5)/10)*100;
+    const isPos=f.score>=0;
+    const left=isPos?'50%':'auto';
+    const right=isPos?'auto':'50%';
+    const width=Math.abs(f.score)/5*50+'%';
+    fb.innerHTML+=`
+      <div class="factor-row">
+        <div class="factor-name">${f.name}</div>
+        <div class="factor-bar-wrap">
+          <div class="factor-bar-center"></div>
+          <div class="factor-bar-fill" style="background:${factorBarColor(f.score)};width:${width};left:${left};right:${right};"></div>
+        </div>
+        <div class="factor-score" style="color:${factorBarColor(f.score)}">${f.score>0?'+':''}${f.score}</div>
+        <div class="factor-arrow" style="color:${factorArrowColor(f.dir)}">${factorArrow(f.dir)}</div>
+        <div class="factor-note">${f.note}</div>
+      </div>
+    `;
+  });
+
+  // Radar
+  if(radarChartInstance)radarChartInstance.destroy();
+  const rctx=document.getElementById('radarChart').getContext('2d');
+  radarChartInstance=new Chart(rctx,{
+    type:'radar',
+    data:{
+      labels:sig.factors.map(f=>f.name.split(' ').slice(0,2).join(' ')),
+      datasets:[{
+        data:sig.factors.map(f=>f.score),
+        backgroundColor:'rgba(0,230,118,0.1)',
+        borderColor:'rgba(0,230,118,0.8)',
+        pointBackgroundColor:'rgba(0,230,118,1)',
+        pointRadius:4,
+        borderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      scales:{r:{min:-5,max:5,ticks:{display:false,stepSize:1},grid:{color:'rgba(30,34,39,0.8)'},pointLabels:{color:'#6B7280',font:{size:9}},angleLines:{color:'rgba(30,34,39,0.8)'}}},
+      plugins:{legend:{display:false}},
+    }
+  });
+
+  // Catalysts
+  const cl=document.getElementById('catalystList');cl.innerHTML='';
+  sig.catalysts.forEach(c=>{
+    cl.innerHTML+=`
+      <div class="catalyst-item">
+        <div class="catalyst-date">${c.date}</div>
+        <div class="catalyst-name" style="flex:1">${c.name}</div>
+        <span class="catalyst-impact impact-${c.impact}">${c.impact.toUpperCase()}</span>
+      </div>
+    `;
+  });
+}
+
+function openSignalDetail(ticker){
+  // Switch to deep dive
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-deepdive').classList.add('active');
+  document.querySelectorAll('.nav-tab')[1].classList.add('active');
+  loadDeepDive(ticker);
+}
+
+/* ════════════════════════════
+   JOURNAL
+════════════════════════════ */
+function buildJournal(){
+  const tb=document.getElementById('journalBody');tb.innerHTML='';
+  JOURNAL_DATA.forEach(t=>{
+    const win=t.pnl.startsWith('+');
+    tb.innerHTML+=`
+      <tr>
+        <td style="color:var(--muted)">${t.date}</td>
+        <td style="font-weight:700">${t.asset}</td>
+        <td><span style="font-size:0.7rem;padding:2px 8px;border-radius:50px;background:${t.dir==='LONG'?'rgba(0,230,118,0.12)':'rgba(255,61,113,0.12)'};color:${t.dir==='LONG'?'var(--green)':'var(--red)'}">${t.dir}</span></td>
+        <td>${t.entry}</td>
+        <td>${t.exit}</td>
+        <td style="font-weight:700;color:${win?'var(--green)':'var(--red)'}">${t.pnl}</td>
+        <td style="color:${win?'var(--green)':'var(--red)'}">${t.pct}</td>
+        <td style="color:${parseFloat(t.r)>0?'var(--green)':'var(--red)'};font-weight:700">${t.r}R</td>
+        <td style="color:var(--muted)">${t.score}/40</td>
+        <td><span style="font-size:0.65rem;color:var(--muted);background:rgba(107,114,128,0.12);padding:2px 8px;border-radius:50px">Gesloten</span></td>
+      </tr>
+    `;
+  });
+}
+
+/* ════════════════════════════
+   INIT
+════════════════════════════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  drawFGGauge();
+  // Sparklines mock data
+  drawSparkline('sp-fed',[5.5,5.5,5.5,5.5,5.25,5.25,5.25],'#6B7280');
+  drawSparkline('sp-cpi',[8.1,6.4,5.0,4.0,3.7,3.4,3.2],'#00E676');
+  drawSparkline('sp-dxy',[101,102,103,102,104,103,104.2],'#FF3D71');
+  drawSparkline('sp-10y',[3.8,4.0,4.2,4.1,4.3,4.38,4.38],'#FF3D71');
+  drawSparkline('sp-vix',[14,15,13,16,18,17,18.4],'#FF9500');
+  buildHeatmap();
+  buildSignalsPreview();
+  buildAllSignals();
+  buildAssetSelector();
+  loadDeepDive('XAU');
+  buildJournal();
+});
+</script>
+</body>
+</html>
