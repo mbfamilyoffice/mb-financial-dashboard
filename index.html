@@ -1267,11 +1267,95 @@ document.addEventListener('click',e=>{
 });
 
 /* ════════════════════════════
+   POLYGON.IO LIVE DATA
+════════════════════════════ */
+const POLYGON_KEY = 'GQ1er4FvprBeuOuizTLs2YIbkVoLGksp';
+
+// Polygon ticker mapping (ETFs/futures als proxy voor indices & grondstoffen)
+const POLYGON_MAP = {
+  XAU:  'GLD',   // Gold ETF
+  XAG:  'SLV',   // Silver ETF
+  XPT:  'PPLT',  // Platinum ETF
+  WTI:  'USO',   // Oil ETF
+  HG:   'CPER',  // Copper ETF
+  SPX:  'SPY',   // S&P 500 ETF
+  NDX:  'QQQ',   // Nasdaq ETF
+  DJI:  'DIA',   // Dow Jones ETF
+  RUT:  'IWM',   // Russell 2000 ETF
+  AEX:  'EWN',   // Netherlands ETF
+  DAX:  'EWG',   // Germany ETF
+  CAC:  'EWQ',   // France ETF
+  FTSE: 'EWU',   // UK ETF
+  SX5E: 'FEZ',   // Euro Stoxx 50 ETF
+};
+
+async function fetchPolygonPrev(ticker){
+  try{
+    const r=await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${POLYGON_KEY}`);
+    const d=await r.json();
+    if(d.results&&d.results[0]){
+      const res=d.results[0];
+      const chgPct=((res.c-res.o)/res.o*100);
+      return {price:res.c,open:res.o,high:res.h,low:res.l,vol:res.v,chg:chgPct};
+    }
+  }catch(e){console.warn('Polygon fetch failed:',ticker,e);}
+  return null;
+}
+
+async function fetchPolygonSparkline(ticker,days=7){
+  try{
+    const to=new Date();const from=new Date();from.setDate(from.getDate()-days-5);
+    const toStr=to.toISOString().split('T')[0];
+    const fromStr=from.toISOString().split('T')[0];
+    const r=await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${fromStr}/${toStr}?adjusted=true&sort=asc&limit=${days}&apiKey=${POLYGON_KEY}`);
+    const d=await r.json();
+    if(d.results&&d.results.length)return d.results.map(x=>x.c);
+  }catch(e){}
+  return null;
+}
+
+async function loadLiveData(){
+  // Update status dot to loading
+  document.querySelector('.status-dot').style.background='#FF9500';
+  document.querySelector('.status-dot').style.boxShadow='0 0 8px #FF9500';
+
+  // Fetch all assets in parallel
+  const promises=ASSETS.map(async a=>{
+    const polyTicker=POLYGON_MAP[a.id];
+    if(!polyTicker)return;
+    const data=await fetchPolygonPrev(polyTicker);
+    if(data){
+      a.price=data.price;
+      a.chg=parseFloat(data.chg.toFixed(2));
+      a.volRaw=data.vol;
+    }
+  });
+  await Promise.all(promises);
+
+  // Refresh heatmap + asset selector with live data
+  buildHeatmap();
+  buildAssetSelector();
+
+  // Update portfolio strip prices
+  document.querySelector('.status-dot').style.background='var(--green)';
+  document.querySelector('.status-dot').style.boxShadow='0 0 8px var(--green)';
+
+  // Load sparklines for macro proxies
+  const spxSpark=await fetchPolygonSparkline('SPY',7);
+  if(spxSpark)drawSparkline('sp-vix',spxSpark,'#FF9500'); // VIX proxy via SPY inverse
+
+  const dxySpark=await fetchPolygonSparkline('UUP',7); // Dollar ETF
+  if(dxySpark)drawSparkline('sp-dxy',dxySpark,'#FF3D71');
+
+  console.log('✅ Polygon live data geladen');
+}
+
+/* ════════════════════════════
    INIT
 ════════════════════════════ */
-window.addEventListener('DOMContentLoaded',()=>{
+window.addEventListener('DOMContentLoaded',async ()=>{
   drawFGGauge();
-  // Sparklines mock data
+  // Sparklines — mock data als fallback
   drawSparkline('sp-fed',[5.5,5.5,5.5,5.5,5.25,5.25,5.25],'#6B7280');
   drawSparkline('sp-cpi',[8.1,6.4,5.0,4.0,3.7,3.4,3.2],'#00E676');
   drawSparkline('sp-dxy',[101,102,103,102,104,103,104.2],'#FF3D71');
@@ -1283,6 +1367,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   buildAssetSelector();
   loadDeepDive('XAU');
   buildJournal();
+
+  // Load live Polygon data
+  await loadLiveData();
+  // Refresh elke 60 seconden
+  setInterval(loadLiveData, 60000);
 });
 </script>
 </body>
