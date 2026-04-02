@@ -20,8 +20,8 @@
     .nav{position:sticky;top:0;z-index:100;background:rgba(13,15,17,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:56px;}
     .nav-brand{font-weight:700;font-size:1rem;color:var(--green);margin-right:32px;letter-spacing:1px;white-space:nowrap;}
     .nav-brand span{color:var(--text);}
-    .nav-tabs{display:flex;gap:4px;flex:1;}
-    .nav-tab{padding:8px 16px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all 0.15s;border:none;background:transparent;letter-spacing:0.3px;}
+    .nav-tabs{display:flex;gap:4px;flex:1;overflow-x:auto;}
+    .nav-tab{padding:8px 16px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all 0.15s;border:none;background:transparent;letter-spacing:0.3px;white-space:nowrap;}
     .nav-tab.active{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2);}
     .nav-tab:hover:not(.active){color:var(--text);background:rgba(255,255,255,0.04);}
     .nav-right{display:flex;align-items:center;gap:12px;margin-left:auto;}
@@ -166,6 +166,46 @@
     .impact-low{background:rgba(107,114,128,0.15);color:var(--muted);}
     .catalyst-arrow{font-size:0.7rem;color:var(--muted);margin-left:auto;flex-shrink:0;}
 
+    /* ── NEWS INTELLIGENCE MODULE ── */
+    .news-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+    .news-filter-btn{padding:5px 12px;border-radius:50px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s;font-family:inherit;}
+    .news-filter-btn.active{border-color:var(--green);color:var(--green);background:rgba(0,230,118,0.08);}
+    .news-filter-btn:hover:not(.active){color:var(--text);border-color:#333;}
+    .news-grid{display:flex;flex-direction:column;gap:8px;}
+    .news-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;}
+    .news-item:hover{border-color:rgba(255,255,255,0.1);transform:translateX(2px);}
+    .news-item.impact-high{border-left:3px solid var(--red);}
+    .news-item.impact-med{border-left:3px solid var(--orange);}
+    .news-item.impact-low{border-left:3px solid var(--border);}
+    .news-item-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+    .news-item-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+    .news-source{font-size:0.65rem;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:0.5px;}
+    .news-time{font-size:0.62rem;color:var(--muted);}
+    .news-category{font-size:0.6rem;padding:2px 7px;border-radius:50px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+    .cat-macro{background:rgba(0,176,255,0.12);color:var(--blue);}
+    .cat-geo{background:rgba(255,149,0,0.12);color:var(--orange);}
+    .cat-commodity{background:rgba(251,191,36,0.12);color:#fbbf24;}
+    .cat-equity{background:rgba(167,139,250,0.12);color:var(--purple);}
+    .cat-crypto{background:rgba(0,230,118,0.12);color:var(--green);}
+    .news-headline{font-size:0.88rem;font-weight:600;color:var(--text);line-height:1.5;margin-bottom:8px;}
+    .news-desc{font-size:0.75rem;color:var(--muted);line-height:1.5;margin-bottom:10px;}
+    .news-bottom{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .news-asset-badge{font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:50px;border:1px solid;}
+    .news-asset-badge.bull{color:var(--green);border-color:rgba(0,230,118,0.3);background:rgba(0,230,118,0.08);}
+    .news-asset-badge.bear{color:var(--red);border-color:rgba(255,61,113,0.3);background:rgba(255,61,113,0.08);}
+    .news-asset-badge.nt{color:var(--muted);border-color:var(--border);background:transparent;}
+    .news-advice{margin-left:auto;font-size:0.7rem;font-weight:700;padding:4px 10px;border-radius:6px;}
+    .news-advice.bull{background:rgba(0,230,118,0.12);color:var(--green);}
+    .news-advice.bear{background:rgba(255,61,113,0.12);color:var(--red);}
+    .news-advice.nt{background:rgba(107,114,128,0.1);color:var(--muted);}
+    .news-sentiment-bar{height:3px;border-radius:50px;margin-top:8px;}
+    .news-loading{text-align:center;padding:40px;color:var(--muted);font-size:0.82rem;}
+    .news-refresh-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:0.72rem;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all 0.15s;margin-left:auto;}
+    .news-refresh-btn:hover{color:var(--text);border-color:#444;}
+    .news-stats{display:flex;gap:16px;align-items:center;font-size:0.7rem;color:var(--muted);}
+    .news-stat-bull{color:var(--green);font-weight:700;}
+    .news-stat-bear{color:var(--red);font-weight:700;}
+
     /* ── CATALYST MODAL ── */
     .cat-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
     .cat-modal-overlay.hidden{display:none;}
@@ -207,7 +247,7 @@
     ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
     /* ── BOTTOM NAV (mobile) ── */
-    .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(13,15,17,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));grid-template-columns:repeat(4,1fr);}
+    .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:rgba(13,15,17,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));grid-template-columns:repeat(5,1fr);}
     .bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:color 0.15s;width:100%;-webkit-tap-highlight-color:transparent;}
     .bnav-btn.active{color:var(--green);}
     .bnav-icon{font-size:1.3rem;line-height:1;}
@@ -240,6 +280,7 @@
     <button class="nav-tab active" onclick="showPage('command')">⚡ Command Center</button>
     <button class="nav-tab" onclick="showPage('deepdive')">🔬 Asset Deep Dive</button>
     <button class="nav-tab" onclick="showPage('signals')">🎯 Trading Signals</button>
+    <button class="nav-tab" onclick="showPage('news')">📰 News Intelligence</button>
     <button class="nav-tab" onclick="showPage('journal')">📒 Trade Journal</button>
   </div>
   <div class="nav-right">
@@ -461,6 +502,44 @@
 </div>
 
 <!-- ════════════════════════════════
+     PAGE: NEWS INTELLIGENCE
+════════════════════════════════ -->
+<div class="page" id="page-news">
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="font-size:1.1rem;font-weight:700;">📰 News Intelligence</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;" id="newsLastUpdate">Live via NewsAPI · wordt geladen...</div>
+    </div>
+    <button class="news-refresh-btn" onclick="loadNews()">🔄 Ververs nieuws</button>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="card-sm" style="margin-bottom:14px;">
+    <div class="news-stats" id="newsStats">
+      <span>Laden...</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="news-filters" id="newsFilters">
+    <button class="news-filter-btn active" onclick="filterNews('all',this)">Alles</button>
+    <button class="news-filter-btn" onclick="filterNews('macro',this)">📊 Macro</button>
+    <button class="news-filter-btn" onclick="filterNews('geo',this)">🌍 Geopolitiek</button>
+    <button class="news-filter-btn" onclick="filterNews('commodity',this)">🥇 Grondstoffen</button>
+    <button class="news-filter-btn" onclick="filterNews('equity',this)">📈 Aandelen</button>
+    <button class="news-filter-btn" onclick="filterNews('high',this)">🔴 Hoge impact</button>
+    <button class="news-filter-btn" onclick="filterNews('bull',this)">🟢 Bullish</button>
+    <button class="news-filter-btn" onclick="filterNews('bear',this)">🔴 Bearish</button>
+  </div>
+
+  <!-- News feed -->
+  <div class="news-grid" id="newsGrid">
+    <div class="news-loading">📡 Nieuws laden via NewsAPI...</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
      PAGE 4: TRADE JOURNAL
 ════════════════════════════════ -->
 <div class="page" id="page-journal">
@@ -509,6 +588,10 @@
   <button class="bnav-btn" onclick="switchPage('signals',this)">
     <span class="bnav-icon">🎯</span>
     <span class="bnav-label">Signalen</span>
+  </button>
+  <button class="bnav-btn" onclick="switchPage('news',this)">
+    <span class="bnav-icon">📰</span>
+    <span class="bnav-label">Nieuws</span>
   </button>
   <button class="bnav-btn" onclick="switchPage('journal',this)">
     <span class="bnav-icon">📒</span>
@@ -683,17 +766,239 @@ const JOURNAL_DATA = [
 /* ════════════════════════════
    UTILS
 ════════════════════════════ */
+/* ════════════════════════════
+   NEWS INTELLIGENCE
+════════════════════════════ */
+const NEWS_API_KEY = 'a306298688b4449c97a96e89c2d1c1ac';
+let allNewsItems = [];
+let activeNewsFilter = 'all';
+
+// Asset impact rules — keyword → asset + richting
+const NEWS_ASSET_RULES = [
+  {keywords:['gold','xau','bullion','precious metal'],asset:'XAU',name:'Goud'},
+  {keywords:['silver','xag'],asset:'XAG',name:'Zilver'},
+  {keywords:['platinum','xpt'],asset:'XPT',name:'Platinum'},
+  {keywords:['oil','crude','wti','opec','petroleum','brent'],asset:'WTI',name:'Olie'},
+  {keywords:['copper','hg','industrial metal'],asset:'HG',name:'Koper'},
+  {keywords:['s&p','spx','spy','s&p 500','stock market','equities','wall street'],asset:'SPX',name:'S&P 500'},
+  {keywords:['nasdaq','tech stock','ndx','qqq'],asset:'NDX',name:'Nasdaq'},
+  {keywords:['dow','djia','blue chip'],asset:'DJI',name:'Dow Jones'},
+  {keywords:['aex','amsterdam','netherlands','dutch'],asset:'AEX',name:'AEX'},
+  {keywords:['dax','german','germany','frankfurt'],asset:'DAX',name:'DAX'},
+  {keywords:['federal reserve','fed','fomc','interest rate','rate cut','rate hike','powell'],asset:'MACRO',name:'Fed/Rente'},
+  {keywords:['inflation','cpi','ppi','consumer price'],asset:'MACRO',name:'Inflatie'},
+  {keywords:['dollar','dxy','usd'],asset:'DXY',name:'Dollar'},
+  {keywords:['iran','middle east','conflict','war','sanction','geopolit'],asset:'GEO',name:'Geopolitiek'},
+  {keywords:['china','beijing','prc','chinese'],asset:'CHINA',name:'China'},
+  {keywords:['tariff','trade war','trade deal'],asset:'TRADE',name:'Handel'},
+];
+
+const BULLISH_WORDS = ['surge','jump','rally','record','beat','breakout','upgrade','buy','soar','gain','rise','strong','positive','growth','boom','high'];
+const BEARISH_WORDS = ['drop','fall','crash','miss','downgrade','sell','warning','concern','plunge','decline','weak','loss','risk','fear','tumble','low','cut'];
+
+function categorizeArticle(text) {
+  const t = text.toLowerCase();
+  if (/federal reserve|fomc|interest rate|inflation|cpi|gdp|pmi|unemployment|jobs|ecb|central bank|monetary/.test(t)) return 'macro';
+  if (/iran|war|conflict|sanction|geopolit|military|russia|ukraine|middle east|tariff|trade/.test(t)) return 'geo';
+  if (/gold|silver|oil|crude|copper|opec|commodity|metal|wheat|corn|natural gas/.test(t)) return 'commodity';
+  if (/stock|earnings|ipo|nasdaq|s&p|equity|shares|dividend|analyst/.test(t)) return 'equity';
+  return 'macro';
+}
+
+function getImpactLevel(text, assets) {
+  const t = text.toLowerCase();
+  const highImpactWords = /federal reserve|fomc|opec|earnings|crash|record|plunge|surge|war|sanction|rate cut|rate hike/;
+  if (highImpactWords.test(t) || assets.length >= 3) return 'high';
+  if (assets.length >= 2) return 'med';
+  return 'low';
+}
+
+function analyzeSentiment(text) {
+  const t = text.toLowerCase();
+  let bull = 0, bear = 0;
+  BULLISH_WORDS.forEach(w => { if (t.includes(w)) bull++; });
+  BEARISH_WORDS.forEach(w => { if (t.includes(w)) bear++; });
+  const total = bull + bear;
+  if (!total) return {dir:'nt', score:0};
+  const score = (bull - bear) / total;
+  return {dir: score > 0.1 ? 'bull' : score < -0.1 ? 'bear' : 'nt', score};
+}
+
+function getAffectedAssets(text) {
+  const t = text.toLowerCase();
+  const found = [];
+  NEWS_ASSET_RULES.forEach(rule => {
+    if (rule.keywords.some(kw => t.includes(kw))) {
+      found.push({asset: rule.asset, name: rule.name});
+    }
+  });
+  return [...new Map(found.map(f => [f.asset, f])).values()].slice(0, 5);
+}
+
+function getActionAdvice(sentiment, assets, category) {
+  if (sentiment.dir === 'bull') {
+    if (assets.find(a => a.asset === 'XAU')) return {text:'📈 Overweeg long XAU', dir:'bull'};
+    if (assets.find(a => a.asset === 'WTI')) return {text:'📈 Overweeg long WTI', dir:'bull'};
+    if (assets.find(a => a.asset === 'SPX')) return {text:'📈 Risk-on setup', dir:'bull'};
+    if (category === 'macro') return {text:'📈 Bullish macro signal', dir:'bull'};
+    return {text:'📈 Bullish sentiment', dir:'bull'};
+  }
+  if (sentiment.dir === 'bear') {
+    if (assets.find(a => a.asset === 'XAU')) return {text:'🛡️ Safe haven XAU/XAG', dir:'bull'};
+    if (assets.find(a => a.asset === 'WTI')) return {text:'📉 Overweeg short WTI', dir:'bear'};
+    if (assets.find(a => a.asset === 'SPX')) return {text:'📉 Risk-off — verkoop/hedge', dir:'bear'};
+    if (category === 'geo') return {text:'🛡️ Vlucht naar safe havens', dir:'bull'};
+    return {text:'📉 Bearish sentiment', dir:'bear'};
+  }
+  return {text:'👁️ Monitor', dir:'nt'};
+}
+
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return `${Math.round(diff)}s geleden`;
+  if (diff < 3600) return `${Math.round(diff/60)}m geleden`;
+  if (diff < 86400) return `${Math.round(diff/3600)}u geleden`;
+  return `${Math.round(diff/86400)}d geleden`;
+}
+
+function renderNewsItem(item) {
+  const catLabels = {macro:'📊 Macro', geo:'🌍 Geopolitiek', commodity:'🥇 Grondstof', equity:'📈 Aandelen'};
+  const catClass = {macro:'cat-macro', geo:'cat-geo', commodity:'cat-commodity', equity:'cat-equity'};
+  const sentColor = item.sentiment.dir === 'bull' ? 'var(--green)' : item.sentiment.dir === 'bear' ? 'var(--red)' : 'var(--muted)';
+  const sentWidth = Math.abs(item.sentiment.score) * 100;
+
+  return `
+    <div class="news-item impact-${item.impact}" onclick="window.open('${item.url}','_blank')">
+      <div class="news-item-meta">
+        <span class="news-source">${item.source}</span>
+        <span class="news-time">${timeAgo(item.publishedAt)}</span>
+        <span class="news-category ${catClass[item.category]}">${catLabels[item.category]}</span>
+      </div>
+      <div class="news-headline">${item.title}</div>
+      ${item.description ? `<div class="news-desc">${item.description.substring(0,160)}${item.description.length>160?'…':''}</div>` : ''}
+      <div class="news-bottom">
+        ${item.assets.map(a => `<span class="news-asset-badge ${item.sentiment.dir}">${item.sentiment.dir==='bull'?'▲':'▼'} ${a.name}</span>`).join('')}
+        <span class="news-advice ${item.advice.dir}">${item.advice.text}</span>
+      </div>
+      <div class="news-sentiment-bar" style="background:linear-gradient(90deg,${sentColor} ${sentWidth}%,var(--border) ${sentWidth}%);opacity:0.6;"></div>
+    </div>
+  `;
+}
+
+async function loadNews() {
+  const grid = document.getElementById('newsGrid');
+  grid.innerHTML = '<div class="news-loading">📡 Nieuws ophalen via NewsAPI...</div>';
+
+  const queries = [
+    'gold silver oil copper commodity market',
+    'Federal Reserve interest rate inflation',
+    'stock market S&P 500 earnings',
+    'geopolitical risk trade war sanctions',
+    'AEX DAX European market',
+  ];
+
+  try {
+    // CORS proxy nodig voor browser → gebruik allorigins
+    const query = 'gold oil Federal Reserve stock market S&P 500 inflation geopolitical';
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=50&apiKey=${NEWS_API_KEY}`;
+    const r = await fetch(url);
+    const d = await r.json();
+
+    if (d.status !== 'ok') throw new Error(d.message || 'API error');
+
+    allNewsItems = d.articles
+      .filter(a => a.title && a.title !== '[Removed]')
+      .map(a => {
+        const text = (a.title || '') + ' ' + (a.description || '');
+        const sentiment = analyzeSentiment(text);
+        const assets = getAffectedAssets(text);
+        const category = categorizeArticle(text);
+        const impact = getImpactLevel(text, assets);
+        const advice = getActionAdvice(sentiment, assets, category);
+        return {
+          title: a.title,
+          description: a.description,
+          url: a.url,
+          source: a.source?.name || 'Onbekend',
+          publishedAt: a.publishedAt,
+          sentiment, assets, category, impact, advice,
+        };
+      })
+      // Sorteer: high impact eerst, dan op tijd
+      .sort((a,b) => {
+        const impScore = {high:3,med:2,low:1};
+        return (impScore[b.impact] - impScore[a.impact]) || (new Date(b.publishedAt) - new Date(a.publishedAt));
+      });
+
+    updateNewsStats();
+    renderNewsGrid();
+
+    document.getElementById('newsLastUpdate').textContent =
+      `Live via NewsAPI · ${allNewsItems.length} artikelen · ${new Date().toLocaleTimeString('nl-NL')}`;
+
+  } catch(e) {
+    grid.innerHTML = `<div class="news-loading">❌ Fout bij laden: ${e.message}</div>`;
+    console.error('News load error:', e);
+  }
+}
+
+function updateNewsStats() {
+  const bull = allNewsItems.filter(i => i.sentiment.dir === 'bull').length;
+  const bear = allNewsItems.filter(i => i.sentiment.dir === 'bear').length;
+  const high = allNewsItems.filter(i => i.impact === 'high').length;
+  document.getElementById('newsStats').innerHTML = `
+    <span>${allNewsItems.length} artikelen</span>
+    <span>·</span>
+    <span class="news-stat-bull">▲ ${bull} bullish</span>
+    <span>·</span>
+    <span class="news-stat-bear">▼ ${bear} bearish</span>
+    <span>·</span>
+    <span style="color:var(--red);font-weight:700">🔴 ${high} hoge impact</span>
+  `;
+}
+
+function renderNewsGrid() {
+  const grid = document.getElementById('newsGrid');
+  let items = allNewsItems;
+
+  if (activeNewsFilter === 'macro') items = items.filter(i => i.category === 'macro');
+  else if (activeNewsFilter === 'geo') items = items.filter(i => i.category === 'geo');
+  else if (activeNewsFilter === 'commodity') items = items.filter(i => i.category === 'commodity');
+  else if (activeNewsFilter === 'equity') items = items.filter(i => i.category === 'equity');
+  else if (activeNewsFilter === 'high') items = items.filter(i => i.impact === 'high');
+  else if (activeNewsFilter === 'bull') items = items.filter(i => i.sentiment.dir === 'bull');
+  else if (activeNewsFilter === 'bear') items = items.filter(i => i.sentiment.dir === 'bear');
+
+  if (!items.length) {
+    grid.innerHTML = '<div class="news-loading">Geen artikelen gevonden voor dit filter.</div>';
+    return;
+  }
+  grid.innerHTML = items.map(renderNewsItem).join('');
+}
+
+function filterNews(filter, btn) {
+  activeNewsFilter = filter;
+  document.querySelectorAll('.news-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNewsGrid();
+}
+
+// Auto-refresh elke 5 minuten
+setInterval(() => {
+  if (document.getElementById('page-news').classList.contains('active')) loadNews();
+}, 5 * 60 * 1000);
+
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(event&&event.target)event.target.classList.add('active');
-  // Sync bottom nav
+  const bmap={command:0,deepdive:1,signals:2,news:3,journal:4};
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  const bmap={command:0,deepdive:1,signals:2,journal:3};
   const btns=document.querySelectorAll('.bnav-btn');
   if(btns[bmap[id]])btns[bmap[id]].classList.add('active');
   window.scrollTo(0,0);
+  if(id==='news' && allNewsItems.length===0) loadNews();
 }
 
 function switchPage(id,btn){
@@ -703,12 +1008,12 @@ function switchPage(id,btn){
   const pg=document.getElementById('page-'+id);
   if(pg)pg.classList.add('active');
   if(btn)btn.classList.add('active');
-  const tmap={command:0,deepdive:1,signals:2,journal:3};
+  const tmap={command:0,deepdive:1,signals:2,news:3,journal:4};
   const tabs=document.querySelectorAll('.nav-tab');
   if(tabs[tmap[id]])tabs[tmap[id]].classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='news' && allNewsItems.length===0) loadNews();
 }
-// Expose globally so inline onclick works
 window.switchPage=switchPage;
 
 function pctColor(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--muted)';}
