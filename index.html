@@ -155,14 +155,48 @@
     .pf-sub{font-size:0.7rem;margin-top:2px;}
 
     /* ── CATALYST ── */
-    .catalyst-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+    .catalyst-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;border-radius:6px;padding-left:6px;margin-left:-6px;}
     .catalyst-item:last-child{border-bottom:none;}
+    .catalyst-item:hover{background:rgba(255,255,255,0.03);}
     .catalyst-date{font-size:0.68rem;font-weight:700;color:var(--purple);width:70px;flex-shrink:0;}
     .catalyst-name{font-size:0.8rem;font-weight:600;}
     .catalyst-impact{font-size:0.65rem;padding:2px 8px;border-radius:50px;}
     .impact-high{background:rgba(255,61,113,0.15);color:var(--red);}
     .impact-med{background:rgba(255,149,0,0.15);color:var(--orange);}
     .impact-low{background:rgba(107,114,128,0.15);color:var(--muted);}
+    .catalyst-arrow{font-size:0.7rem;color:var(--muted);margin-left:auto;flex-shrink:0;}
+
+    /* ── CATALYST MODAL ── */
+    .cat-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+    .cat-modal-overlay.hidden{display:none;}
+    .cat-modal{background:#141619;border:1px solid #1E2227;border-radius:16px;width:100%;max-width:620px;max-height:85vh;overflow-y:auto;}
+    .cat-modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+    .cat-modal-close{margin-left:auto;background:rgba(255,255,255,0.06);border:none;color:var(--muted);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .cat-modal-close:hover{color:var(--text);}
+    .cat-modal-title{font-size:1.05rem;font-weight:700;}
+    .cat-modal-meta{font-size:0.72rem;color:var(--muted);margin-top:3px;}
+    .cat-modal-body{padding:20px 24px;}
+    .cat-section{margin-bottom:18px;}
+    .cat-section-title{font-size:0.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;}
+    .cat-consensus-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+    .cat-consensus-item{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+    .cat-consensus-label{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+    .cat-consensus-val{font-size:1.1rem;font-weight:800;margin-top:4px;}
+    .cat-desc{font-size:0.82rem;color:var(--muted);line-height:1.7;}
+    .cat-impact-grid{display:flex;flex-direction:column;gap:8px;}
+    .cat-impact-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border);}
+    .cat-impact-asset{font-size:0.78rem;font-weight:700;width:60px;flex-shrink:0;}
+    .cat-impact-bar-wrap{flex:1;height:6px;background:#1a1d22;border-radius:50px;overflow:hidden;}
+    .cat-impact-bar{height:100%;border-radius:50px;}
+    .cat-impact-desc{font-size:0.72rem;color:var(--muted);width:200px;flex-shrink:0;}
+    .cat-scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .cat-scenario{border-radius:8px;padding:12px;}
+    .cat-scenario.bull{background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.15);}
+    .cat-scenario.bear{background:rgba(255,61,113,0.06);border:1px solid rgba(255,61,113,0.15);}
+    .cat-scenario-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+    .cat-scenario.bull .cat-scenario-label{color:var(--green);}
+    .cat-scenario.bear .cat-scenario-label{color:var(--red);}
+    .cat-scenario-text{font-size:0.78rem;color:var(--muted);line-height:1.5;}
 
     /* ── SPARKLINE ── */
     .sparkline{height:40px;width:100%;}
@@ -387,6 +421,22 @@
     </div>
   </div>
   <div id="allSignals"></div>
+</div>
+
+<!-- ════════════════════════════════
+     CATALYST MODAL
+════════════════════════════════ -->
+<div class="cat-modal-overlay hidden" id="catModal">
+  <div class="cat-modal">
+    <div class="cat-modal-header">
+      <div>
+        <div class="cat-modal-title" id="catModalTitle"></div>
+        <div class="cat-modal-meta" id="catModalMeta"></div>
+      </div>
+      <button class="cat-modal-close" onclick="closeCatModal()">✕</button>
+    </div>
+    <div class="cat-modal-body" id="catModalBody"></div>
+  </div>
 </div>
 
 <!-- ════════════════════════════════
@@ -843,11 +893,13 @@ function loadDeepDive(assetId){
   // Catalysts
   const cl=document.getElementById('catalystList');cl.innerHTML='';
   sig.catalysts.forEach(c=>{
+    const hasDetail=!!CATALYST_DETAIL[c.name];
     cl.innerHTML+=`
-      <div class="catalyst-item">
+      <div class="catalyst-item" onclick="${hasDetail?`openCatModal('${c.name.replace(/'/g,"\\'")}','${c.date}','${c.impact}')`:''}" style="${hasDetail?'':'cursor:default'}">
         <div class="catalyst-date">${c.date}</div>
         <div class="catalyst-name" style="flex:1">${c.name}</div>
         <span class="catalyst-impact impact-${c.impact}">${c.impact.toUpperCase()}</span>
+        ${hasDetail?'<span class="catalyst-arrow">›</span>':''}
       </div>
     `;
   });
@@ -885,6 +937,267 @@ function buildJournal(){
     `;
   });
 }
+
+/* ════════════════════════════
+   CATALYST DETAIL DATA
+════════════════════════════ */
+const CATALYST_DETAIL = {
+  'US CPI Release':{
+    date:'10 Apr 2026',time:'14:30 AMS',source:'US Bureau of Labor Statistics',
+    consensus:'3.1%',previous:'3.2%',expected:'3.0–3.2%',
+    description:'De Consumer Price Index (CPI) meet de gemiddelde prijsverandering van een mandje goederen en diensten. Als de CPI lager uitvalt dan verwacht, is dit doorgaans bullish voor aandelen (Fed kan eerder verlagen) en bearish voor de dollar. Een verrassing boven verwachting kan risk-off uitlokken.',
+    impacts:[
+      {asset:'S&P 500',dir:'up',strength:85,desc:'Lagere CPI → Fed pivot verwachting → bullish equities'},
+      {asset:'Nasdaq',dir:'up',strength:90,desc:'Tech meest gevoelig voor renteverwachtingen'},
+      {asset:'Goud (XAU)',dir:'up',strength:70,desc:'Lagere reële rente → goud stijgt'},
+      {asset:'Dollar (DXY)',dir:'dn',strength:75,desc:'Soft CPI → dollar verzwakt'},
+      {asset:'Obligaties',dir:'up',strength:80,desc:'10Y yield daalt bij lage CPI'},
+      {asset:'Olie (WTI)',dir:'nt',strength:30,desc:'Beperkte directe impact'},
+    ],
+    scenarios:{
+      bull:{trigger:'CPI < 2.9% (under-shoot)',text:'Sterke risk-on rally. S&P +1.5–2.5%. Goud +1%. Fed juni-verlaging ingeprijsd. Dollar selloff.'},
+      bear:{trigger:'CPI > 3.4% (hot print)',text:'Stagflatie angst. S&P -2%. Tech -3%. Goud vluchthaven maar ook onder druk door stijgende dollar. FOMC hike-angst terug.'},
+    }
+  },
+  'FOMC Meeting':{
+    date:'1 Mei 2026',time:'20:00 AMS',source:'Federal Reserve',
+    consensus:'Ongewijzigd 5.25–5.50%',previous:'5.25–5.50%',expected:'Pauze, dovish forward guidance',
+    description:'De Federal Open Market Committee (FOMC) beslist over de hoogte van de Federal Funds Rate. De markt kijkt niet alleen naar het besluit zelf maar vooral naar de begeleidende statement en de persconferentie van Powell. Toon en forward guidance zijn dit keer bepalender dan de rentestap zelf.',
+    impacts:[
+      {asset:'S&P 500',dir:'up',strength:75,desc:'Pauze + dovish toon = bullish baseline scenario'},
+      {asset:'Nasdaq',dir:'up',strength:85,desc:'Tech profiteert maximaal van dovish Fed'},
+      {asset:'Goud (XAU)',dir:'up',strength:80,desc:'Dalende reële rente = structureel bullish goud'},
+      {asset:'Dollar (DXY)',dir:'dn',strength:70,desc:'Dovish Fed = dollar onder druk'},
+      {asset:'Zilver (XAG)',dir:'up',strength:65,desc:'Volgt goud met extra leverage'},
+      {asset:'Olie (WTI)',dir:'up',strength:50,desc:'Risk-on lift indien markten positief reageren'},
+    ],
+    scenarios:{
+      bull:{trigger:'Pauze + hint eerste verlaging Q3',text:'Grote risk-on. S&P +1.8%. Goud naar $2.400+. Dollar index breekt onder 103. Beste scenario voor grondstoffen.'},
+      bear:{trigger:'Hawkish verrassing of hike-signaal',text:'Sharp selloff. S&P -3%. Goud initieel -1% (dollar spike) maar daarna herstel als vluchtwaarde. Tech -4%.'},
+    }
+  },
+  'OPEC Monthly Report':{
+    date:'3 Apr 2026',time:'12:00 AMS',source:'OPEC Secretariat',
+    consensus:'Productie ongewijzigd',previous:'26.8 mbpd',expected:'Geen productiewijziging',
+    description:'Het maandelijkse OPEC rapport bevat productiecijfers per lid, demand forecasts en marktbalans-analyse. Naast de officiële productiecijfers kijkt de markt naar eventuele hints over productieveranderingen bij de volgende vergadering. Compliance van leden met afgesproken quota is een kritische factor.',
+    impacts:[
+      {asset:'Olie (WTI)',dir:'dn',strength:80,desc:'Status quo = bearish bij hoge inventories'},
+      {asset:'Olie (Brent)',dir:'dn',strength:80,desc:'Directe correlatie'},
+      {asset:'S&P 500',dir:'up',strength:40,desc:'Lagere olie = positief voor transport/consumenten'},
+      {asset:'Goud (XAU)',dir:'nt',strength:20,desc:'Beperkte directe impact'},
+      {asset:'Koper (HG)',dir:'nt',strength:25,desc:'Indirecte macro-impact via groeiperceptie'},
+      {asset:'Dollar (DXY)',dir:'up',strength:35,desc:'Petrodollar vraag effect'},
+    ],
+    scenarios:{
+      bull:{trigger:'Aankondiging extra productiekorting',text:'WTI spike +4–6% richting $87. Energie-sector aandelen +3%. Inflatievrees keert terug.'},
+      bear:{trigger:'Productie verhoogd of quota compliance laag',text:'WTI -3–5% naar $78 zone. Energie-aandelen -2.5%. Positief voor transport & airlines.'},
+    }
+  },
+  'EIA Weekly Inventory':{
+    date:'10 Apr 2026',time:'16:30 AMS',source:'US Energy Information Administration',
+    consensus:'-1.2M vaten',previous:'+4.2M vaten',expected:'-0.5M tot -2.0M vaten',
+    description:'De EIA wekelijkse crude oil inventory data toont de verandering in Amerikaanse olievoorraden. Een onverwachte opbouw (build) is bearish voor olie; een onverwachte daling (draw) is bullish. Vorige week toonde een verrassende opbouw van +4.2M vaten vs. verwachting -1.5M — dit signaleerde oversupply.',
+    impacts:[
+      {asset:'Olie (WTI)',dir:'up',strength:90,desc:'Draw > verwachting → directe bullish reactie'},
+      {asset:'Olie Aandelen',dir:'up',strength:75,desc:'Shell, BP profiteren van hogere olieprijzen'},
+      {asset:'S&P 500',dir:'dn',strength:35,desc:'Hogere energie-inflatie = marginaal negatief'},
+      {asset:'Goud (XAU)',dir:'nt',strength:15,desc:'Minimale directe impact'},
+      {asset:'Dollar (DXY)',dir:'up',strength:30,desc:'Hogere olie = petrodollar flow'},
+      {asset:'Koper (HG)',dir:'nt',strength:20,desc:'Geen directe impact'},
+    ],
+    scenarios:{
+      bull:{trigger:'Draw > 3M vaten',text:'WTI +2–3% richting $84–85. Short-covering rally. Energie-sector outperformt.'},
+      bear:{trigger:'Build > 2M vaten (tweede week op rij)',text:'WTI -3% naar $79. Bevestigt demand weakness thesis. Short positie versterkt.'},
+    }
+  },
+  'China GDP Q1':{
+    date:'15 Apr 2026',time:'03:00 AMS',source:'National Bureau of Statistics China',
+    consensus:'+5.0% YoY',previous:'+5.2% YoY',expected:'4.8–5.2% range',
+    description:'Het Chinese BBP-groeicijfer voor Q1 2026 is een van de meest impactvolle macro-events voor grondstoffen. China is de grootste importeur van koper, ijzererts en olie ter wereld. Een miss op het groeidoel van 5% kan brede selloff in industriële metalen uitlokken.',
+    impacts:[
+      {asset:'Koper (HG)',dir:'up',strength:95,desc:'China = 55% wereldwijde koperConsumptie, directe impact'},
+      {asset:'Goud (XAU)',dir:'up',strength:60,desc:'Zwakke groei = meer stimulus = bullish goud'},
+      {asset:'Olie (WTI)',dir:'up',strength:75,desc:'Sterkere vraag vanuit China'},
+      {asset:'AEX/DAX',dir:'up',strength:65,desc:'Europese exporteurs profiteren van China herstel'},
+      {asset:'Zilver (XAG)',dir:'up',strength:80,desc:'Industriële vraag direct gekoppeld aan Chinese productie'},
+      {asset:'Dollar (DXY)',dir:'dn',strength:55,desc:'Risk-on bij goed China cijfer = dollar zwakker'},
+    ],
+    scenarios:{
+      bull:{trigger:'GDP > 5.3%',text:'Koper +3–5%. Zilver +4%. Europese indices +1.5%. Risk-on breed. Shanghai Composite +2%.'},
+      bear:{trigger:'GDP < 4.5%',text:'Koper -4–6%. Industriële metalen breed verkocht. AEX/DAX -1.5%. Safe haven flows naar goud en bonds.'},
+    }
+  },
+  'JP Morgan Earnings Q1':{
+    date:'12 Apr 2026',time:'13:00 AMS',source:'JPMorgan Chase & Co.',
+    consensus:'EPS $4.17',previous:'$4.44',expected:'$4.05–$4.30',
+    description:'JPMorgan opent traditioneel het earnings seizoen voor de grote Amerikaanse banken. De resultaten geven een eerste indicatie van de economische gezondheid: consumentenkrediet, handelsactiviteit en investment banking revenues. Bijzondere aandacht voor: net interest margin, loan loss provisions en trading revenues.',
+    impacts:[
+      {asset:'S&P 500',dir:'up',strength:70,desc:'Sterke bank earnings zetten positieve toon voor heel seizoen'},
+      {asset:'Financiële sector',dir:'up',strength:90,desc:'Directe sector-impact, peers volgen'},
+      {asset:'Nasdaq',dir:'up',strength:55,desc:'Risk appetite neemt toe bij goed earnings seizoen'},
+      {asset:'Goud (XAU)',dir:'dn',strength:30,desc:'Risk-on = minder safe haven vraag'},
+      {asset:'Dollar (DXY)',dir:'up',strength:40,desc:'Sterke US economie = dollar support'},
+      {asset:'Obligaties',dir:'dn',strength:45,desc:'Risk-on → yield stijgt, obligaties dalen'},
+    ],
+    scenarios:{
+      bull:{trigger:'EPS beat + verhoogde guidance',text:'S&P +1.2%. Financiële sector +2.5%. Earnings seizoen off to a great start. Risk-on breed.'},
+      bear:{trigger:'EPS miss + verhoogde loan loss provisions',text:'S&P -1.5%. Recessie-angst terug. Bank sector -3%. Flight to safety naar goud en bonds.'},
+    }
+  },
+  'LME Copper Inventory Update':{
+    date:'16 Apr 2026',time:'09:00 AMS',source:'London Metal Exchange',
+    consensus:'-2.500 ton',previous:'-3.200 ton',expected:'Verdere daling voorraden',
+    description:'De LME koper voorraden zijn een directe maatstaf voor fysieke vraag/aanbod balans. De afgelopen maand zijn voorraden met 18% gedaald, wat fysieke krapte signaleert. Indien de daling versnelt, kan dit een technische squeeze uitlokken waarbij short posities gedwongen worden te dekken.',
+    impacts:[
+      {asset:'Koper (HG)',dir:'up',strength:85,desc:'Dalende LME stocks = fysieke krapte = bullish prijs'},
+      {asset:'Zilver (XAG)',dir:'up',strength:30,desc:'Verwante industriële metaal'},
+      {asset:'Mijnbouw aandelen',dir:'up',strength:70,desc:'Freeport-McMoRan, Glencore profiteren'},
+      {asset:'S&P 500',dir:'up',strength:30,desc:'Dr. Copper als economische barometer'},
+      {asset:'Goud (XAU)',dir:'nt',strength:15,desc:'Minimale directe correlatie'},
+      {asset:'Olie (WTI)',dir:'nt',strength:10,desc:'Geen directe relatie'},
+    ],
+    scenarios:{
+      bull:{trigger:'Daling > 5.000 ton (acceleratie)',text:'Koper squeeze richting $4.50+. Short covering rally. Mijnbouw sector outperformt.'},
+      bear:{trigger:'Stijging voorraden (unexpected build)',text:'Koper -2–3%. Vraag-zorgen hernemen. Industriële metalen breed onder druk.'},
+    }
+  },
+  'Fed Beige Book':{
+    date:'17 Apr 2026',time:'20:00 AMS',source:'Federal Reserve',
+    consensus:'Gematigde groei',previous:'Bescheiden groei',expected:'Gemengd beeld per district',
+    description:'Het Beige Book is een kwalitatief rapport van de 12 Federal Reserve districten over economische condities. De markt kijkt naar: arbeidsmarkt condities, loondruk, consumentenuitgaven en bedrijfsinvesteringen. De toon (optimistisch vs. voorzichtig) beïnvloedt Fed meeting verwachtingen.',
+    impacts:[
+      {asset:'S&P 500',dir:'up',strength:45,desc:'Soft landing bevestiging = mild bullish'},
+      {asset:'Dollar (DXY)',dir:'nt',strength:35,desc:'Gemengde impact afhankelijk van toon'},
+      {asset:'Goud (XAU)',dir:'up',strength:40,desc:'Economische zwakte hints = goud support'},
+      {asset:'Obligaties',dir:'up',strength:50,desc:'Zwakker economisch beeld = yields dalen'},
+      {asset:'Olie (WTI)',dir:'nt',strength:20,desc:'Beperkte directe impact'},
+      {asset:'Koper (HG)',dir:'nt',strength:30,desc:'Industriële activiteit indicatie'},
+    ],
+    scenarios:{
+      bull:{trigger:'Sterke groei + afkoelende inflatie',text:'Goldilocks scenario bevestigd. Equities +0.5–1%. Dollar stabiel. Goud onder lichte druk.'},
+      bear:{trigger:'Recessieve signalen in meerdere districten',text:'Risk-off. Equities -1%. Safe haven flows. Goud +0.8%. 10Y yield daalt.'},
+    }
+  },
+  'China Gold Import Data':{
+    date:'12 Apr 2026',time:'04:00 AMS',source:'China General Administration of Customs',
+    consensus:'120 ton',previous:'108 ton',expected:'100–130 ton range',
+    description:'China is de grootste goudimporteur ter wereld. Centrale bank aankopen + retail vraag (Chinees Nieuwjaar effect nasleep) en institutionele allocaties zijn de drivers. Record centrale bank aankopen in 2024 (1.037 ton wereldwijd) geven structurele ondersteuning. Hoge importcijfers bevestigen de bull thesis voor goud.',
+    impacts:[
+      {asset:'Goud (XAU)',dir:'up',strength:85,desc:'Hoge Chinese vraag = directe prijssupport'},
+      {asset:'Zilver (XAG)',dir:'up',strength:55,desc:'Mee-liften op precious metals strength'},
+      {asset:'Platinum (XPT)',dir:'up',strength:40,desc:'Verwante precious metal'},
+      {asset:'Dollar (DXY)',dir:'dn',strength:45,desc:'Goud kopen = dollars verkopen'},
+      {asset:'S&P 500',dir:'nt',strength:15,desc:'Beperkte directe impact'},
+      {asset:'Olie (WTI)',dir:'nt',strength:10,desc:'Geen directe relatie'},
+    ],
+    scenarios:{
+      bull:{trigger:'Import > 140 ton',text:'Goud +1.5–2%. Nieuw ATH in zicht. Zilver volgt met leverage. Precious metals breed sterk.'},
+      bear:{trigger:'Import < 80 ton (significante daling)',text:'Goud -1%. Demand concern. Markt vraagt zich af of Chinese vraag structureel afneemt.'},
+    }
+  },
+  'China Industrial Production':{
+    date:'22 Apr 2026',time:'03:00 AMS',source:'National Bureau of Statistics China',
+    consensus:'+5.4% YoY',previous:'+5.6% YoY',expected:'5.0–5.8% range',
+    description:'Chinese industriële productie is een directe indicator voor grondstoffenvraag — met name koper, aluminium en staal. China produceert ca. 55% van 's werelds koper en 57% van aluminium. Sterke productiecijfers bevestigen de commodity demand thesis.',
+    impacts:[
+      {asset:'Koper (HG)',dir:'up',strength:90,desc:'Directe industriële vraag indicator'},
+      {asset:'Zilver (XAG)',dir:'up',strength:75,desc:'Solar panel productie = zilver vraag'},
+      {asset:'Goud (XAU)',dir:'nt',strength:20,desc:'Beperkte directe impact'},
+      {asset:'AEX/DAX',dir:'up',strength:60,desc:'Europese industriële exporteurs profiteren'},
+      {asset:'Olie (WTI)',dir:'up',strength:65,desc:'Industriële activiteit = energie vraag'},
+      {asset:'Dollar (DXY)',dir:'dn',strength:40,desc:'Risk-on bij sterke China data'},
+    ],
+    scenarios:{
+      bull:{trigger:'> 6.0% (verrassing upside)',text:'Koper +3%. Industriële metalen breed bullish. Risk-on. AEX/DAX +1%.'},
+      bear:{trigger:'< 4.5% (demand collapse signaal)',text:'Koper -4%. Mijnbouw sector uitverkoop. Risk-off. Vlucht naar goud en dollar.'},
+    }
+  },
+};
+
+function openCatModal(catName, date, impact){
+  const d=CATALYST_DETAIL[catName];
+  document.getElementById('catModal').classList.remove('hidden');
+  document.getElementById('catModalTitle').textContent=catName;
+  const impactBadge=`<span class="catalyst-impact impact-${impact}" style="font-size:0.7rem;padding:2px 10px;">${impact.toUpperCase()}</span>`;
+  document.getElementById('catModalMeta').innerHTML=`${date} &nbsp;·&nbsp; ${d?d.source:'—'} &nbsp;${impactBadge}`;
+
+  if(!d){document.getElementById('catModalBody').innerHTML='<p style="color:var(--muted);font-size:0.82rem">Geen detail data beschikbaar.</p>';return;}
+
+  document.getElementById('catModalBody').innerHTML=`
+    <!-- Consensus cijfers -->
+    <div class="cat-section">
+      <div class="cat-section-title">Verwachting & Consensus</div>
+      <div class="cat-consensus-grid">
+        <div class="cat-consensus-item">
+          <div class="cat-consensus-label">Vorig</div>
+          <div class="cat-consensus-val" style="color:var(--muted)">${d.previous}</div>
+        </div>
+        <div class="cat-consensus-item">
+          <div class="cat-consensus-label">Consensus</div>
+          <div class="cat-consensus-val" style="color:var(--blue)">${d.consensus}</div>
+        </div>
+        <div class="cat-consensus-item">
+          <div class="cat-consensus-label">Verwachte range</div>
+          <div class="cat-consensus-val" style="color:var(--text);font-size:0.85rem">${d.expected}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Beschrijving -->
+    <div class="cat-section">
+      <div class="cat-section-title">Wat wordt er gepubliceerd</div>
+      <p class="cat-desc">${d.description}</p>
+    </div>
+
+    <!-- Impact per asset -->
+    <div class="cat-section">
+      <div class="cat-section-title">Impact per Asset</div>
+      <div class="cat-impact-grid">
+        ${d.impacts.map(imp=>{
+          const isUp=imp.dir==='up',isDn=imp.dir==='dn';
+          const color=isUp?'var(--green)':isDn?'var(--red)':'var(--muted)';
+          const barColor=isUp?'#00E676':isDn?'#FF3D71':'#6B7280';
+          const arrow=isUp?'▲':isDn?'▼':'━';
+          return `
+            <div class="cat-impact-row">
+              <div class="cat-impact-asset" style="color:${color}">${arrow} ${imp.asset}</div>
+              <div class="cat-impact-bar-wrap">
+                <div class="cat-impact-bar" style="width:${imp.strength}%;background:${barColor}44;border-right:2px solid ${barColor};"></div>
+              </div>
+              <div style="font-size:0.65rem;font-weight:700;color:${color};width:30px;text-align:right;flex-shrink:0">${imp.strength}%</div>
+              <div class="cat-impact-desc">${imp.desc}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Scenarios -->
+    <div class="cat-section">
+      <div class="cat-section-title">Scenario Analyse</div>
+      <div class="cat-scenario-grid">
+        <div class="cat-scenario bull">
+          <div class="cat-scenario-label">🟢 Bull Scenario</div>
+          <div style="font-size:0.65rem;color:var(--green);margin-bottom:6px;font-weight:600">${d.scenarios.bull.trigger}</div>
+          <div class="cat-scenario-text">${d.scenarios.bull.text}</div>
+        </div>
+        <div class="cat-scenario bear">
+          <div class="cat-scenario-label">🔴 Bear Scenario</div>
+          <div style="font-size:0.65rem;color:var(--red);margin-bottom:6px;font-weight:600">${d.scenarios.bear.trigger}</div>
+          <div class="cat-scenario-text">${d.scenarios.bear.text}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function closeCatModal(){
+  document.getElementById('catModal').classList.add('hidden');
+}
+// Close on overlay click
+document.addEventListener('click',e=>{
+  if(e.target.id==='catModal')closeCatModal();
+});
 
 /* ════════════════════════════
    INIT
